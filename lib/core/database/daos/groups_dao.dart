@@ -18,10 +18,6 @@ class GroupsDao extends DatabaseAccessor<AppDatabase> with _$GroupsDaoMixin {
     return query.getSingleOrNull();
   }
 
-  Future<int> insert(GroupsTableCompanion group) {
-    return into(groupsTable).insert(group);
-  }
-
   Future<void> upsert(GroupsTableCompanion group) {
     return into(groupsTable).insertOnConflictUpdate(group);
   }

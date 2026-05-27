@@ -22,14 +22,4 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
   Future<int> insert(TransactionsTableCompanion transaction) {
     return into(transactionsTable).insert(transaction);
   }
-
-  Future<void> upsert(TransactionsTableCompanion transaction) {
-    return into(transactionsTable).insertOnConflictUpdate(transaction);
-  }
-
-  Future<int> deletetransactions(String id) {
-    final query = delete(transactionsTable);
-    query.where((t) => t.id.equals(id));
-    return query.go();
-  }
 }

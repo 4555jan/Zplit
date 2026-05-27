@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/tables/users_table.dart';
 
 enum TransactionStatus { unsigned, partiallySigned, signed }
 
 class TransactionsTable extends Table {
   TextColumn get id => text()();
-  TextColumn get fromUserPublicKey => text()();
-  TextColumn get toUserPublicKey => text()();
+  TextColumn get fromUserPublicKey =>
+      text().references(UsersTable, #publicKey)();
+  TextColumn get toUserPublicKey => text().references(UsersTable, #publicKey)();
   IntColumn get amount => integer()();
   TextColumn get description => text().nullable()();
   TextColumn get tag => text().nullable()();

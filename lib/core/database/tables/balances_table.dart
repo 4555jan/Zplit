@@ -1,7 +1,8 @@
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/tables/users_table.dart';
 
 class BalancesTable extends Table {
-  TextColumn get userPublicKey => text()();
+  TextColumn get userPublicKey => text().references(UsersTable, #publicKey)();
   IntColumn get netAmount => integer()();
   TextColumn get signed => text().nullable()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

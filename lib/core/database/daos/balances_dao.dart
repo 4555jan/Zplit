@@ -19,10 +19,7 @@ class BalancesDao extends DatabaseAccessor<AppDatabase>
     return query.getSingleOrNull();
   }
 
-  Future<int> insert(BalancesTableCompanion balance) {
-    return into(balancesTable).insert(balance);
-  }
-
+  // we can just use upsert for update and insert
   Future<void> upsert(BalancesTableCompanion balance) {
     return into(balancesTable).insertOnConflictUpdate(balance);
   }

@@ -18,10 +18,6 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     return query.getSingleOrNull();
   }
 
-  Future<int> insert(UsersTableCompanion user) {
-    return into(usersTable).insert(user);
-  }
-
   Future<void> upsert(UsersTableCompanion user) {
     return into(usersTable).insertOnConflictUpdate(user);
   }

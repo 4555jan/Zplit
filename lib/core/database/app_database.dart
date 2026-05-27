@@ -9,9 +9,7 @@ import 'package:zplit/core/database/daos/groups_dao.dart';
 import 'package:zplit/core/database/daos/transactions_dao.dart';
 import 'package:zplit/core/database/daos/users_dao.dart';
 
-import 'package:zplit/core/database/daos/wallet_dao.dart';
 import 'package:zplit/core/database/tables/groups_table.dart';
-import 'package:zplit/core/database/tables/wallet_table.dart';
 
 import 'tables/users_table.dart';
 import 'tables/transactions_table.dart';
@@ -24,14 +22,8 @@ part 'app_database.g.dart';
 const _uuid = Uuid();
 
 @DriftDatabase(
-  tables: [
-    UsersTable,
-    TransactionsTable,
-    BalancesTable,
-    GroupsTable,
-    WalletDetailsTable,
-  ],
-  daos: [TransactionsDao, WalletDetailsDao, GroupsDao, UsersDao, BalancesDao],
+  tables: [UsersTable, TransactionsTable, BalancesTable, GroupsTable],
+  daos: [TransactionsDao, GroupsDao, UsersDao, BalancesDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
