@@ -24,7 +24,7 @@ class BalancesDao extends DatabaseAccessor<AppDatabase>
     return into(balancesTable).insertOnConflictUpdate(balance);
   }
 
-  Future<int> deletebalaces(String userPublicKey) {
+  Future<int> deleteBalances(String userPublicKey) {
     final query = delete(balancesTable);
     query.where((t) => t.userPublicKey.equals(userPublicKey));
     return query.go();

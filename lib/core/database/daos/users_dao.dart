@@ -22,7 +22,7 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     return into(usersTable).insertOnConflictUpdate(user);
   }
 
-  Future<int> deleteuser(String publicKey) {
+  Future<int> deleteUser(String publicKey) {
     final query = delete(usersTable);
     query.where((t) => t.publicKey.equals(publicKey));
     return query.go();

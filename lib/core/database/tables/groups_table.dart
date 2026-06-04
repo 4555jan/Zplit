@@ -11,7 +11,7 @@ class GroupsTable extends Table {
   TextColumn get description => text().nullable()();
 
   @override
-  String get tableName => 'groups_table';
+  String get tableName => 'groups';
 
   @override
   Set<Column> get primaryKey => {id};
