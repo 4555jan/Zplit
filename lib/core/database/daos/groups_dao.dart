@@ -22,7 +22,7 @@ class GroupsDao extends DatabaseAccessor<AppDatabase> with _$GroupsDaoMixin {
     return into(groupsTable).insertOnConflictUpdate(group);
   }
 
-  Future<int> deletegroup(String id) {
+  Future<int> deleteGroup(String id) {
     final query = delete(groupsTable);
     query.where((t) => t.id.equals(id));
     return query.go();
