@@ -15,6 +15,7 @@ class TransactionsTable extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get senderSignature => text().nullable()();
   TextColumn get receiverSignature => text().nullable()();
+  TextColumn get currency => text()();
 
   @override
   String get tableName => 'transactions';
