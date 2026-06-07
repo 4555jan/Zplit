@@ -5,6 +5,7 @@ class UsersTable extends Table {
   TextColumn get displayName => text()();
   TextColumn get cryptoAddress => text().nullable()();
   TextColumn get profilePicture => text().nullable()();
+  TextColumn get defaultCurrency => text()();
 
   @override
   String get tableName => 'users';
