@@ -1,32 +1,48 @@
-part of 'transaction_bloc.dart';
+abstract class TransactionEvent {}
 
-@freezed
-class TransactionEvent with _$TransactionEvent {
-  const factory TransactionEvent.loadAll() = LoadAllTransactions;
+class LoadAllTransactions extends TransactionEvent {}
 
-  const factory TransactionEvent.loadById({required String id}) =
-      LoadTransactionById;
+class GetTransactionById extends TransactionEvent {
+  final String id;
+  GetTransactionById(this.id);
+}
 
-  const factory TransactionEvent.create({
-    required String fromUserPublicKey,
-    required String toUserPublicKey,
-    required int amount,
-    required String currency,
-    String? description,
-    String? tag,
-  }) = CreateTransaction;
+class CreateTransaction extends TransactionEvent {
+  final String fromUserPublicKey;
+  final String toUserPublicKey;
+  final BigInt amount;
+  final String currency;
+  final String? description;
+  final String? tag;
 
-  const factory TransactionEvent.signAsSender({
-    required String transactionId,
-    required String senderSignature,
-  }) = SignAsSender;
+  CreateTransaction({
+    required this.fromUserPublicKey,
+    required this.toUserPublicKey,
+    required this.amount,
+    required this.currency,
+    this.description,
+    this.tag,
+  });
+}
 
-  const factory TransactionEvent.accept({
-    required String transactionId,
-    required String receiverSignature,
-    required String signedBalancePayload,
-  }) = AcceptTransaction;
+class SignAsSender extends TransactionEvent {
+  final String transactionId;
+  final String senderSignature;
+  SignAsSender({required this.transactionId, required this.senderSignature});
+}
 
-  const factory TransactionEvent.reject({required String transactionId}) =
-      RejectTransaction;
+class AcceptTransaction extends TransactionEvent {
+  final String transactionId;
+  final String receiverSignature;
+  final String signedBalancePayload;
+  AcceptTransaction({
+    required this.transactionId,
+    required this.receiverSignature,
+    required this.signedBalancePayload,
+  });
+}
+
+class RejectTransaction extends TransactionEvent {
+  final String transactionId;
+  RejectTransaction(this.transactionId);
 }

@@ -1,25 +1,31 @@
-part of 'balance_bloc.dart';
+abstract class BalanceEvent {}
 
-@freezed
-class BalancesEvent with _$BalancesEvent {
-  const factory BalancesEvent.loadAll() = LoadAllBalances;
+class LoadAllBalances extends BalanceEvent {}
 
-  const factory BalancesEvent.loadByUser({required String userPublicKey}) =
-      LoadBalanceByUser;
+class LoadBalancesForUser extends BalanceEvent {
+  final String userPublicKey;
+  LoadBalancesForUser(this.userPublicKey);
+}
 
-  const factory BalancesEvent.loadByUserAndCurrency({
-    required String userPublicKey,
-    required String currency,
-  }) = LoadBalanceByUserAndCurrency;
+class LoadPositiveBalances extends BalanceEvent {}
 
-  const factory BalancesEvent.loadPositive() = LoadPositiveBalances;
+class LoadNegativeBalances extends BalanceEvent {}
 
-  const factory BalancesEvent.loadNegative() = LoadNegativeBalances;
+class UpsertBalance extends BalanceEvent {
+  final String userPublicKey;
+  final int netAmount;
+  final String currency;
+  final String? signed;
 
-  const factory BalancesEvent.upsert({
-    required BalancesTableCompanion balance,
-  }) = UpsertBalance;
+  UpsertBalance({
+    required this.userPublicKey,
+    required this.netAmount,
+    required this.currency,
+    this.signed,
+  });
+}
 
-  const factory BalancesEvent.delete({required String userPublicKey}) =
-      DeleteBalance;
+class DeleteBalance extends BalanceEvent {
+  final String userPublicKey;
+  DeleteBalance(this.userPublicKey);
 }

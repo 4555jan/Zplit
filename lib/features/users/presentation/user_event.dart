@@ -1,19 +1,29 @@
-part of 'user_bloc.dart';
+abstract class UserEvent {}
 
-@freezed
-class UserEvent with _$UserEvent {
-  const factory UserEvent.loadAll() = LoadAllUsers;
+class LoadAllUsers extends UserEvent {}
 
-  const factory UserEvent.loadByPublicKey({required String publicKey}) =
-      LoadUserByPublicKey;
+class GetUserByPublicKey extends UserEvent {
+  final String publicKey;
+  GetUserByPublicKey(this.publicKey);
+}
 
-  const factory UserEvent.upsert({
-    required String publicKey,
-    required String displayName,
-    String? cryptoAddress,
-    String? profilePicture,
-    String? defaultCurrency,
-  }) = UpsertUser;
+class UpsertUser extends UserEvent {
+  final String publicKey;
+  final String displayName;
+  final String? cryptoAddress;
+  final String? profilePicture;
+  final String defaultCurrency;
 
-  const factory UserEvent.delete({required String publicKey}) = DeleteUser;
+  UpsertUser({
+    required this.publicKey,
+    required this.displayName,
+    this.cryptoAddress,
+    this.profilePicture,
+    required this.defaultCurrency,
+  });
+}
+
+class DeleteUser extends UserEvent {
+  final String publicKey;
+  DeleteUser(this.publicKey);
 }

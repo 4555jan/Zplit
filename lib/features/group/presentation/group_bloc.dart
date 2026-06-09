@@ -1,73 +1,54 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:zplit/core/database/app_database.dart';
-import 'package:zplit/core/database/tables/groups_table.dart';
-import 'package:zplit/features/group/data/group_repository.dart';
-
-part 'group_event.dart';
-part 'group_state.dart';
-part 'group_bloc.freezed.dart';
+import 'package:zplit/features/group/domain/repositories/group_repository.dart';
+import 'package:zplit/features/group/presentation/group_event.dart';
+import 'package:zplit/features/group/presentation/group_state.dart';
 
 class GroupBloc extends Bloc<GroupEvent, GroupState> {
-  final GroupRepository _repository;
+  final GroupRepository _groupRepository;
 
-  GroupBloc({required GroupRepository repository})
-    : _repository = repository,
-      super(const GroupState.initial()) {
-    on<LoadAllGroups>(_onLoadAll);
-    on<LoadGroupById>(_onLoadById);
-    on<UpsertGroup>(_onUpsert);
-    on<DeleteGroup>(_onDelete);
-  }
-
-  Future<void> _onLoadAll(LoadAllGroups event, Emitter<GroupState> emit) async {
-    emit(const GroupState.loading());
-    try {
-      final groups = await _repository.getAllGroups();
-      emit(GroupState.allLoaded(groups: groups));
-    } catch (e) {
-      emit(GroupState.error(message: e.toString()));
-    }
-  }
-
-  Future<void> _onLoadById(
-    LoadGroupById event,
-    Emitter<GroupState> emit,
-  ) async {
-    emit(const GroupState.loading());
-    try {
-      final group = await _repository.getGroupById(event.id);
-      if (group == null) {
-        emit(const GroupState.error(message: 'Group not found'));
-        return;
+  GroupBloc({required GroupRepository groupRepository})
+    : _groupRepository = groupRepository,
+      super(GroupInitial()) {
+    on<GroupEvent>((event, emit) async {
+      if (event is LoadAllGroups) {
+        emit(GroupLoading());
+        try {
+          final groups = await _groupRepository.getAllGroups();
+          emit(GroupLoaded(groups));
+        } catch (e) {
+          emit(GroupError(e.toString()));
+        }
+      } else if (event is GetGroupById) {
+        emit(GroupLoading());
+        try {
+          final group = await _groupRepository.getGroupById(event.id);
+          emit(GroupLoaded(group == null ? [] : [group]));
+        } catch (e) {
+          emit(GroupError(e.toString()));
+        }
+      } else if (event is UpsertGroup) {
+        emit(GroupLoading());
+        try {
+          await _groupRepository.upsertGroup(
+            name: event.name,
+            description: event.description,
+            users: event.users,
+          );
+          final groups = await _groupRepository.getAllGroups();
+          emit(GroupLoaded(groups));
+        } catch (e) {
+          emit(GroupError(e.toString()));
+        }
+      } else if (event is DeleteGroup) {
+        emit(GroupLoading());
+        try {
+          await _groupRepository.deleteGroup(event.id);
+          final groups = await _groupRepository.getAllGroups();
+          emit(GroupLoaded(groups));
+        } catch (e) {
+          emit(GroupError(e.toString()));
+        }
       }
-      emit(GroupState.singleLoaded(group: group));
-    } catch (e) {
-      emit(GroupState.error(message: e.toString()));
-    }
-  }
-
-  Future<void> _onUpsert(UpsertGroup event, Emitter<GroupState> emit) async {
-    emit(const GroupState.loading());
-    try {
-      await _repository.upsertGroup(
-        name: event.name,
-        description: event.description,
-        users: event.users,
-      );
-      emit(const GroupState.success(message: 'Group saved'));
-    } catch (e) {
-      emit(GroupState.error(message: e.toString()));
-    }
-  }
-
-  Future<void> _onDelete(DeleteGroup event, Emitter<GroupState> emit) async {
-    emit(const GroupState.loading());
-    try {
-      await _repository.deleteGroup(event.id);
-      emit(const GroupState.success(message: 'Group deleted'));
-    } catch (e) {
-      emit(GroupState.error(message: e.toString()));
-    }
+    });
   }
 }

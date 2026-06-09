@@ -1,25 +1,17 @@
-part of 'balance_bloc.dart';
+import 'package:zplit/features/balance/domain/models/balance_model.dart';
 
-@freezed
-class BalancesState with _$BalancesState {
-  const factory BalancesState.initial() = BalancesInitial;
+abstract class BalanceState {}
 
-  const factory BalancesState.loading() = BalancesLoading;
+class BalanceInitial extends BalanceState {}
 
-  const factory BalancesState.allLoaded({
-    required List<BalancesTableData> balances,
-  }) = BalancesAllLoaded;
+class BalanceLoading extends BalanceState {}
 
-  const factory BalancesState.userLoaded({
-    required List<BalancesTableData> balances,
-  }) = BalancesUserLoaded;
+class BalanceLoaded extends BalanceState {
+  final List<BalanceModel> balances;
+  BalanceLoaded(this.balances);
+}
 
-  const factory BalancesState.singleLoaded({
-    required BalancesTableData? balance,
-  }) = BalancesSingleLoaded;
-
-  const factory BalancesState.success({required String message}) =
-      BalancesSuccess;
-
-  const factory BalancesState.error({required String message}) = BalancesError;
+class BalanceError extends BalanceState {
+  final String message;
+  BalanceError(this.message);
 }

@@ -1,20 +1,21 @@
-part of 'group_bloc.dart';
+abstract class GroupEvent {}
 
-@freezed
-class GroupEvent with _$GroupEvent {
-  /// Load all local groups
-  const factory GroupEvent.loadAll() = LoadAllGroups;
+class LoadAllGroups extends GroupEvent {}
 
-  /// Load a single group by id
-  const factory GroupEvent.loadById({required String id}) = LoadGroupById;
+class GetGroupById extends GroupEvent {
+  final String id;
+  GetGroupById(this.id);
+}
 
-  /// Create or update a group
-  const factory GroupEvent.upsert({
-    required String name,
-    String? description,
-    String? users,
-  }) = UpsertGroup;
+class UpsertGroup extends GroupEvent {
+  final String name;
+  final String? description;
+  final List<String> users;
 
-  /// Delete a group
-  const factory GroupEvent.delete({required String id}) = DeleteGroup;
+  UpsertGroup({required this.name, this.description, this.users = const []});
+}
+
+class DeleteGroup extends GroupEvent {
+  final String id;
+  DeleteGroup(this.id);
 }

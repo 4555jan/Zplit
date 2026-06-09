@@ -1,35 +1,51 @@
 import 'package:drift/drift.dart';
-import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/groups_dao.dart';
 import 'package:zplit/core/database/tables/groups_table.dart';
+import 'package:zplit/features/group/domain/models/group_model.dart';
+import 'package:zplit/features/group/domain/repositories/group_repository.dart';
 
-class GroupRepository {
+class GroupRepositoryImpl implements GroupRepository {
   final GroupsDao _groupsDao;
 
-  GroupRepository({required GroupsDao groupsDao}) : _groupsDao = groupsDao;
+  GroupRepositoryImpl({required GroupsDao groupsDao}) : _groupsDao = groupsDao;
 
-  Future<List<GroupsTableData>> getAllGroups() {
-    return _groupsDao.getAll();
+  GroupModel _toModel(GroupsTableData d) => GroupModel(
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    users: d.users.isEmpty
+        ? []
+        : d.users.split(',').map((e) => e.trim()).toList(),
+  );
+
+  @override
+  Future<List<GroupModel>> getAllGroups() async {
+    final rows = await _groupsDao.getAll();
+    return rows.map(_toModel).toList();
   }
 
-  Future<GroupsTableData?> getGroupById(String id) {
-    return _groupsDao.getById(id);
+  @override
+  Future<GroupModel?> getGroupById(String id) async {
+    final row = await _groupsDao.getById(id);
+    return row == null ? null : _toModel(row);
   }
 
+  @override
   Future<void> upsertGroup({
     required String name,
     String? description,
-    String? users,
+    List<String> users = const [],
   }) {
     return _groupsDao.upsert(
       GroupsTableCompanion(
         name: Value(name),
         description: Value(description),
-        users: Value(users ?? ''),
+        users: Value(users.join(',')),
       ),
     );
   }
 
+  @override
   Future<int> deleteGroup(String id) {
     return _groupsDao.deleteGroup(id);
   }

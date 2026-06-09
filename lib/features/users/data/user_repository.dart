@@ -1,27 +1,41 @@
 import 'package:drift/drift.dart';
-import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/users_dao.dart';
 import 'package:zplit/core/database/tables/users_table.dart';
+import 'package:zplit/features/users/domain/models/user_model.dart';
+import 'package:zplit/features/users/domain/repositories/user_repository.dart';
 
-class UserRepository {
+class UserRepositoryImpl implements UserRepository {
   final UsersDao _usersDao;
 
-  UserRepository({required UsersDao usersDao}) : _usersDao = usersDao;
+  UserRepositoryImpl({required UsersDao usersDao}) : _usersDao = usersDao;
 
-  Future<List<UsersTableData>> getAllUsers() {
-    return _usersDao.getAll();
+  UserModel _toModel(UsersTableData d) => UserModel(
+    publicKey: d.publicKey,
+    displayName: d.displayName,
+    cryptoAddress: d.cryptoAddress,
+    profilePicture: d.profilePicture,
+    defaultCurrency: d.defaultCurrency,
+  );
+
+  @override
+  Future<List<UserModel>> getAllUsers() async {
+    final rows = await _usersDao.getAll();
+    return rows.map(_toModel).toList();
   }
 
-  Future<UsersTableData?> getUserByPublicKey(String publicKey) {
-    return _usersDao.getByPublicKey(publicKey);
+  @override
+  Future<UserModel?> getUserByPublicKey(String publicKey) async {
+    final row = await _usersDao.getByPublicKey(publicKey);
+    return row == null ? null : _toModel(row);
   }
 
+  @override
   Future<void> upsertUser({
     required String publicKey,
     required String displayName,
     String? cryptoAddress,
     String? profilePicture,
-    String? defaultCurrency,
+    required String defaultCurrency,
   }) {
     return _usersDao.upsert(
       UsersTableCompanion(
@@ -34,6 +48,7 @@ class UserRepository {
     );
   }
 
+  @override
   Future<int> deleteUser(String publicKey) {
     return _usersDao.deleteUser(publicKey);
   }
