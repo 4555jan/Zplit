@@ -1,22 +1,17 @@
-part of 'transaction_bloc.dart';
+import 'package:zplit/features/transaction/domain/models/transaction_model.dart';
 
-@freezed
-class TransactionState with _$TransactionState {
-  const factory TransactionState.initial() = TransactionInitial;
+abstract class TransactionState {}
 
-  const factory TransactionState.loading() = TransactionLoading;
+class TransactionInitial extends TransactionState {}
 
-  const factory TransactionState.allLoaded({
-    required List<TransactionsTableData> transactions,
-  }) = TransactionsAllLoaded;
+class TransactionLoading extends TransactionState {}
 
-  const factory TransactionState.singleLoaded({
-    required TransactionsTableData transaction,
-  }) = TransactionSingleLoaded;
+class TransactionLoaded extends TransactionState {
+  final List<TransactionModel> transactions;
+  TransactionLoaded(this.transactions);
+}
 
-  const factory TransactionState.success({required String message}) =
-      TransactionSuccess;
-
-  const factory TransactionState.error({required String message}) =
-      TransactionError;
+class TransactionError extends TransactionState {
+  final String message;
+  TransactionError(this.message);
 }

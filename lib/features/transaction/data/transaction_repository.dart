@@ -1,35 +1,55 @@
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
-import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/transactions_dao.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/tables/transactions_table.dart';
 import 'package:zplit/core/database/tables/balances_table.dart';
+import 'package:zplit/features/transaction/domain/models/transaction_model.dart';
+import 'package:zplit/features/transaction/domain/repositories/transaction_repository.dart';
 
 const _uuid = Uuid();
 
-class TransactionRepository {
+class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionsDao _transactionsDao;
   final BalancesDao _balancesDao;
 
-  TransactionRepository({
+  TransactionRepositoryImpl({
     required TransactionsDao transactionsDao,
     required BalancesDao balancesDao,
   }) : _transactionsDao = transactionsDao,
        _balancesDao = balancesDao;
 
-  Future<List<TransactionsTableData>> getAllTransactions() {
-    return _transactionsDao.getAll();
+  TransactionModel _toModel(TransactionsTableData d) => TransactionModel(
+    id: d.id,
+    fromUserPublicKey: d.fromUserPublicKey,
+    toUserPublicKey: d.toUserPublicKey,
+    amount: d.amount,
+    currency: d.currency,
+    status: d.status,
+    description: d.description,
+    tag: d.tag,
+    createdAt: d.createdAt,
+    senderSignature: d.senderSignature,
+    receiverSignature: d.receiverSignature,
+  );
+
+  @override
+  Future<List<TransactionModel>> getAllTransactions() async {
+    final rows = await _transactionsDao.getAll();
+    return rows.map(_toModel).toList();
   }
 
-  Future<TransactionsTableData?> getTransactionById(String id) {
-    return _transactionsDao.getById(id);
+  @override
+  Future<TransactionModel?> getTransactionById(String id) async {
+    final row = await _transactionsDao.getById(id);
+    return row == null ? null : _toModel(row);
   }
 
+  @override
   Future<void> createTransaction({
     required String fromUserPublicKey,
     required String toUserPublicKey,
-    required int amount,
+    required BigInt amount,
     required String currency,
     String? description,
     String? tag,
@@ -48,6 +68,7 @@ class TransactionRepository {
     );
   }
 
+  @override
   Future<void> signAsSender({
     required String transactionId,
     required String senderSignature,
@@ -70,6 +91,7 @@ class TransactionRepository {
     );
   }
 
+  @override
   Future<void> acceptTransaction({
     required String transactionId,
     required String receiverSignature,
@@ -98,7 +120,7 @@ class TransactionRepository {
       existing.currency,
     );
     final currentNet = currentBalance?.netAmount ?? 0;
-    final newNet = currentNet - existing.amount;
+    final newNet = currentNet - existing.amount.toInt();
 
     await _balancesDao.upsert(
       BalancesTableCompanion(
@@ -111,9 +133,8 @@ class TransactionRepository {
     );
   }
 
+  @override
   Future<void> rejectTransaction(String transactionId) async {
-    // rejected transactions are simply discarded  so no db operations needed
-
     return;
   }
 }

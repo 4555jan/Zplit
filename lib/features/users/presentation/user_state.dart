@@ -1,18 +1,17 @@
-part of 'user_bloc.dart';
+import 'package:zplit/features/users/domain/models/user_model.dart';
 
-@freezed
-class UserState with _$UserState {
-  const factory UserState.initial() = UserInitial;
+abstract class UserState {}
 
-  const factory UserState.loading() = UserLoading;
+class UserInitial extends UserState {}
 
-  const factory UserState.allLoaded({required List<UsersTableData> users}) =
-      UsersAllLoaded;
+class UserLoading extends UserState {}
 
-  const factory UserState.singleLoaded({required UsersTableData user}) =
-      UserSingleLoaded;
+class UserLoaded extends UserState {
+  final List<UserModel> users;
+  UserLoaded(this.users);
+}
 
-  const factory UserState.success({required String message}) = UserSuccess;
-
-  const factory UserState.error({required String message}) = UserError;
+class UserError extends UserState {
+  final String message;
+  UserError(this.message);
 }

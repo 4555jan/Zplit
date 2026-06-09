@@ -1,46 +1,80 @@
 import 'package:drift/drift.dart';
-import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/tables/balances_table.dart';
+import 'package:zplit/features/balance/domain/models/balance_model.dart';
+import 'package:zplit/features/balance/domain/repositories/balance_repository.dart';
 
-class BalancesRepository {
+class BalanceRepositoryImpl implements BalanceRepository {
   final BalancesDao _balancesDao;
 
-  BalancesRepository({required BalancesDao balancesDao})
+  BalanceRepositoryImpl({required BalancesDao balancesDao})
     : _balancesDao = balancesDao;
 
-  Future<List<BalancesTableData>> getAllBalances() {
-    return _balancesDao.getAll();
+  BalanceModel _toModel(BalancesTableData d) => BalanceModel(
+    userPublicKey: d.userPublicKey,
+    netAmount: d.netAmount,
+    currency: d.currency,
+    signed: d.signed,
+    updatedAt: d.updatedAt,
+  );
+
+  @override
+  Future<List<BalanceModel>> getAllBalances() async {
+    final rows = await _balancesDao.getAll();
+    return rows.map(_toModel).toList();
   }
 
-  Future<List<BalancesTableData>> getBalancesForUser(
-    String userPublicKey,
-  ) async {
+  @override
+  Future<List<BalanceModel>> getBalancesForUser(String userPublicKey) async {
     final all = await _balancesDao.getAll();
-    return all.where((b) => b.userPublicKey == userPublicKey).toList();
+    return all
+        .where((b) => b.userPublicKey == userPublicKey)
+        .map(_toModel)
+        .toList();
   }
 
-  Future<BalancesTableData?> getBalanceForUserAndCurrency(
+  @override
+  Future<BalanceModel?> getBalanceForUserAndCurrency(
     String userPublicKey,
     String currency,
-  ) {
-    return _balancesDao.getByPublicKeyAndCurrency(userPublicKey, currency);
+  ) async {
+    final row = await _balancesDao.getByPublicKeyAndCurrency(
+      userPublicKey,
+      currency,
+    );
+    return row == null ? null : _toModel(row);
   }
 
-  Future<List<BalancesTableData>> getPositiveBalances() async {
+  @override
+  Future<List<BalanceModel>> getPositiveBalances() async {
     final all = await _balancesDao.getAll();
-    return all.where((b) => b.netAmount > 0).toList();
+    return all.where((b) => b.netAmount > 0).map(_toModel).toList();
   }
 
-  Future<List<BalancesTableData>> getNegativeBalances() async {
+  @override
+  Future<List<BalanceModel>> getNegativeBalances() async {
     final all = await _balancesDao.getAll();
-    return all.where((b) => b.netAmount < 0).toList();
+    return all.where((b) => b.netAmount < 0).map(_toModel).toList();
   }
 
-  Future<void> upsertBalance(BalancesTableCompanion balance) {
-    return _balancesDao.upsert(balance);
+  @override
+  Future<void> upsertBalance({
+    required String userPublicKey,
+    required int netAmount,
+    required String currency,
+    String? signed,
+  }) {
+    return _balancesDao.upsert(
+      BalancesTableCompanion(
+        userPublicKey: Value(userPublicKey),
+        netAmount: Value(netAmount),
+        currency: Value(currency),
+        signed: Value(signed),
+      ),
+    );
   }
 
+  @override
   Future<int> deleteByPublicKey(String userPublicKey) {
     return _balancesDao.deleteBalances(userPublicKey);
   }

@@ -1,18 +1,17 @@
-part of 'group_bloc.dart';
+import 'package:zplit/features/group/domain/models/group_model.dart';
 
-@freezed
-class GroupState with _$GroupState {
-  const factory GroupState.initial() = GroupInitial;
+abstract class GroupState {}
 
-  const factory GroupState.loading() = GroupLoading;
+class GroupInitial extends GroupState {}
 
-  const factory GroupState.allLoaded({required List<GroupsTableData> groups}) =
-      GroupsAllLoaded;
+class GroupLoading extends GroupState {}
 
-  const factory GroupState.singleLoaded({required GroupsTableData group}) =
-      GroupSingleLoaded;
+class GroupLoaded extends GroupState {
+  final List<GroupModel> groups;
+  GroupLoaded(this.groups);
+}
 
-  const factory GroupState.success({required String message}) = GroupSuccess;
-
-  const factory GroupState.error({required String message}) = GroupError;
+class GroupError extends GroupState {
+  final String message;
+  GroupError(this.message);
 }
