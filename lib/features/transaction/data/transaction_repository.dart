@@ -1,9 +1,9 @@
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/transactions_dao.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/tables/transactions_table.dart';
-import 'package:zplit/core/database/tables/balances_table.dart';
 import 'package:zplit/features/transaction/domain/models/transaction_model.dart';
 import 'package:zplit/features/transaction/domain/repositories/transaction_repository.dart';
 

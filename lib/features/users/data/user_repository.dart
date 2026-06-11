@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/users_dao.dart';
-import 'package:zplit/core/database/tables/users_table.dart';
 import 'package:zplit/features/users/domain/models/user_model.dart';
 import 'package:zplit/features/users/domain/repositories/user_repository.dart';
 

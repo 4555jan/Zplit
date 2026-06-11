@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/groups_dao.dart';
-import 'package:zplit/core/database/tables/groups_table.dart';
+
 import 'package:zplit/features/group/domain/models/group_model.dart';
 import 'package:zplit/features/group/domain/repositories/group_repository.dart';
 
