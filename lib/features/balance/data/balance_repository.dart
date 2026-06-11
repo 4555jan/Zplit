@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/tables/balances_table.dart';
 import 'package:zplit/features/balance/domain/models/balance_model.dart';
