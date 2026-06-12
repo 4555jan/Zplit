@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:zplit/core/database/tables/groups_table.dart';
 import 'package:zplit/core/database/app_database.dart';
 
-part 'groups_dao.g.dart';
+part '../../../generated/groups_dao.g.dart';
 
 @DriftAccessor(tables: [GroupsTable])
 class GroupsDao extends DatabaseAccessor<AppDatabase> with _$GroupsDaoMixin {

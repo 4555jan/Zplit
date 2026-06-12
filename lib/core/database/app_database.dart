@@ -17,7 +17,7 @@ import 'tables/balances_table.dart';
 
 import 'package:uuid/uuid.dart';
 
-part 'app_database.g.dart';
+part '../../generated/app_database.g.dart';
 
 const _uuid = Uuid();
 

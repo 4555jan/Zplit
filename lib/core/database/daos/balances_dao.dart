@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:zplit/core/database/tables/balances_table.dart';
 import 'package:zplit/core/database/app_database.dart';
 
-part 'balances_dao.g.dart';
+part '../../../generated/balances_dao.g.dart';
 
 @DriftAccessor(tables: [BalancesTable])
 class BalancesDao extends DatabaseAccessor<AppDatabase>

@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:zplit/core/database/tables/transactions_table.dart';
 import 'package:zplit/core/database/app_database.dart';
 
-part 'transactions_dao.g.dart';
+part '../../../generated/transactions_dao.g.dart';
 
 @DriftAccessor(tables: [TransactionsTable])
 class TransactionsDao extends DatabaseAccessor<AppDatabase>
