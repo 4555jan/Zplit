@@ -1,6 +1,6 @@
 # Privacy Policies and Terms of Service (for playstore)
 
----
+
 
 ## Privacy Policy
 

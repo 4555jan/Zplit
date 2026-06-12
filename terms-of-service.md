@@ -1,5 +1,5 @@
 
----
+
 
 ## Terms of Service
 
@@ -7,7 +7,7 @@
 
 Version 1.0
 
----
+
 
 Please read these Terms of Service carefully before using Zplit. By installing or using the app, you agree to be bound by these terms.
 
