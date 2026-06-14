@@ -1,100 +1,182 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
-import 'app_text_styles.dart';
 
 abstract class AppTheme {
+  // Colors
+  static const Color _primary = Color(0xFF7C3AED);
+  static const Color _primaryLight = Color(0xFF9D68F0);
+  static const Color _primaryDark = Color(0xFF5B21B6);
+  static const Color _negative = Color(0xFFEF4444);
+  static const Color _backgroundLight = Color(0xFFFFFFFF);
+  static const Color _surfaceLight = Color(0xFFF5F3FF);
+  static const Color _cardLight = Color(0xFFFFFFFF);
+  static const Color _dividerLight = Color(0xFFE5E7EB);
+  static const Color _textPrimaryLight = Color(0xFF111827);
+  static const Color _textSecondaryLight = Color(0xFF6B7280);
+  static const Color _textHintLight = Color(0xFF9CA3AF);
+  static const Color _backgroundDark = Color(0xFF12111A);
+  static const Color _surfaceDark = Color(0xFF1E1B2E);
+  static const Color _cardDark = Color(0xFF252336);
+  static const Color _dividerDark = Color(0xFF2E2B3E);
+  static const Color _textPrimaryDark = Color(0xFFF9FAFB);
+  static const Color _textSecondaryDark = Color(0xFFA0A0B0);
+  static const Color _textHintDark = Color(0xFF6B6B80);
+
   static ThemeData lightTheme = ThemeData(
     colorScheme: ColorScheme.light(
-      primary: AppColors.primary,
-      primaryContainer: AppColors.primaryLight,
-      secondary: AppColors.primaryDark,
-      surface: AppColors.surfaceLight,
-      error: AppColors.negative,
+      primary: _primary,
+      primaryContainer: _primaryLight,
+      secondary: _primaryDark,
+      surface: _surfaceLight,
+      error: _negative,
     ),
-    scaffoldBackgroundColor: AppColors.backgroundLight,
-    cardColor: AppColors.cardLight,
-    dividerColor: AppColors.dividerLight,
+    scaffoldBackgroundColor: _backgroundLight,
+    cardColor: _cardLight,
+    dividerColor: _dividerLight,
     textTheme: TextTheme(
-      displayLarge: AppTextStyles.displayLarge.copyWith(
-        color: AppColors.textPrimaryLight,
+      displayLarge: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: _textPrimaryLight,
       ),
-      displayMedium: AppTextStyles.displayMedium.copyWith(
-        color: AppColors.textPrimaryLight,
+      displayMedium: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: _textPrimaryLight,
       ),
-      headlineLarge: AppTextStyles.headingLarge.copyWith(
-        color: AppColors.textPrimaryLight,
+      headlineLarge: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
+        color: _textPrimaryLight,
       ),
-      headlineMedium: AppTextStyles.headingMedium.copyWith(
-        color: AppColors.textPrimaryLight,
+      headlineMedium: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        color: _textPrimaryLight,
       ),
-      headlineSmall: AppTextStyles.headingSmall.copyWith(
-        color: AppColors.textPrimaryLight,
+      headlineSmall: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: _textPrimaryLight,
       ),
-      bodyLarge: AppTextStyles.bodyLarge.copyWith(
-        color: AppColors.textPrimaryLight,
+      bodyLarge: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: _textPrimaryLight,
       ),
-      bodyMedium: AppTextStyles.bodyMedium.copyWith(
-        color: AppColors.textSecondaryLight,
+      bodyMedium: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: _textSecondaryLight,
       ),
-      bodySmall: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.textHintLight,
+      bodySmall: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: _textHintLight,
       ),
-      labelLarge: AppTextStyles.labelLarge.copyWith(
-        color: AppColors.textPrimaryLight,
+      labelLarge: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: _textPrimaryLight,
       ),
-      labelMedium: AppTextStyles.labelMedium.copyWith(
-        color: AppColors.textSecondaryLight,
+      labelMedium: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: _textSecondaryLight,
       ),
-      labelSmall: AppTextStyles.labelSmall.copyWith(
-        color: AppColors.textHintLight,
+      labelSmall: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.2,
+        color: _textHintLight,
       ),
     ),
   );
 
   static ThemeData darkTheme = ThemeData(
     colorScheme: ColorScheme.dark(
-      primary: AppColors.primary,
-      primaryContainer: AppColors.primaryDark,
-      secondary: AppColors.primaryLight,
-      surface: AppColors.surfaceDark,
-      error: AppColors.negative,
+      primary: _primary,
+      primaryContainer: _primaryDark,
+      secondary: _primaryLight,
+      surface: _surfaceDark,
+      error: _negative,
     ),
-    scaffoldBackgroundColor: AppColors.backgroundDark,
-    cardColor: AppColors.cardDark,
-    dividerColor: AppColors.dividerDark,
+    scaffoldBackgroundColor: _backgroundDark,
+    cardColor: _cardDark,
+    dividerColor: _dividerDark,
     textTheme: TextTheme(
-      displayLarge: AppTextStyles.displayLarge.copyWith(
-        color: AppColors.textPrimaryDark,
+      displayLarge: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: _textPrimaryDark,
       ),
-      displayMedium: AppTextStyles.displayMedium.copyWith(
-        color: AppColors.textPrimaryDark,
+      displayMedium: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: _textPrimaryDark,
       ),
-      headlineLarge: AppTextStyles.headingLarge.copyWith(
-        color: AppColors.textPrimaryDark,
+      headlineLarge: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
+        color: _textPrimaryDark,
       ),
-      headlineMedium: AppTextStyles.headingMedium.copyWith(
-        color: AppColors.textPrimaryDark,
+      headlineMedium: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        color: _textPrimaryDark,
       ),
-      headlineSmall: AppTextStyles.headingSmall.copyWith(
-        color: AppColors.textPrimaryDark,
+      headlineSmall: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: _textPrimaryDark,
       ),
-      bodyLarge: AppTextStyles.bodyLarge.copyWith(
-        color: AppColors.textPrimaryDark,
+      bodyLarge: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: _textPrimaryDark,
       ),
-      bodyMedium: AppTextStyles.bodyMedium.copyWith(
-        color: AppColors.textSecondaryDark,
+      bodyMedium: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: _textSecondaryDark,
       ),
-      bodySmall: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.textHintDark,
+      bodySmall: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: _textHintDark,
       ),
-      labelLarge: AppTextStyles.labelLarge.copyWith(
-        color: AppColors.textPrimaryDark,
+      labelLarge: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: _textPrimaryDark,
       ),
-      labelMedium: AppTextStyles.labelMedium.copyWith(
-        color: AppColors.textSecondaryDark,
+      labelMedium: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: _textSecondaryDark,
       ),
-      labelSmall: AppTextStyles.labelSmall.copyWith(
-        color: AppColors.textHintDark,
+      labelSmall: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.2,
+        color: _textHintDark,
       ),
     ),
   );
