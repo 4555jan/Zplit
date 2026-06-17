@@ -271,11 +271,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: () {
-              if (userPublicKey != null) {
-                _showAddOptions(userPublicKey);
-              } else {
-                Navigator.pushNamed(context, AppRoutes.addExpense);
-              }
+              Navigator.pushNamed(context, AppRoutes.addExpense);
             },
             icon: const Icon(Icons.add, size: 20),
             label: const Text(
@@ -291,45 +287,6 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showAddOptions(String currentUserPublicKey) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.person_add),
-                title: const Text('Add Friends to Zplit'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.inviteFriends,
-                    arguments: currentUserPublicKey,
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.receipt_long),
-                title: const Text('Add Transaction'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, AppRoutes.addExpense);
-                },
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
