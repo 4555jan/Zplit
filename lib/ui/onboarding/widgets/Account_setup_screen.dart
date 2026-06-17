@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:zplit/routing/app_route.dart';
+import 'package:zplit/routing/App_router.dart';
+
 import 'package:zplit/ui/onboarding/widgets/account_card.dart';
+import 'package:zplit/ui/users/view_model/user_event.dart';
+import 'package:zplit/ui/users/view_model/user_state.dart';
 import 'package:zplit/ui/users/view_models/user_bloc.dart';
-import 'package:zplit/ui/users/view_models/user_event.dart';
-import 'package:zplit/ui/users/view_models/user_state.dart';
 
 class AccountSetupScreen extends StatefulWidget {
   const AccountSetupScreen({super.key});
@@ -48,7 +49,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
 
     context.read<UserBloc>().add(
       UpsertUser(
-        publicKey: address, // ← use real EVM address
+        publicKey: address,
         displayName: _displayNameController.text.trim(),
         profilePicture: _pickedImage?.path,
         defaultCurrency: 'INR',

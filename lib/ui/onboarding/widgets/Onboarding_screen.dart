@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:zplit/routing/app_route.dart';
-import 'package:zplit/ui/onboarding/onboardingpage.dart';
+import 'package:zplit/routing/App_router.dart';
+
+import 'package:zplit/ui/onboarding/widgets/onboardingpage.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
