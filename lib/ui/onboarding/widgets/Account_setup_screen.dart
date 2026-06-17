@@ -6,9 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:zplit/routing/App_router.dart';
 
 import 'package:zplit/ui/onboarding/widgets/account_card.dart';
+import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_event.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
-import 'package:zplit/ui/users/view_models/user_bloc.dart';
 
 class AccountSetupScreen extends StatefulWidget {
   const AccountSetupScreen({super.key});
@@ -27,11 +27,25 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
       _displayNameController.text.trim().isNotEmpty &&
       _usernameController.text.trim().isNotEmpty;
 
+  @override
+  void initState() {
+    super.initState();
+    _displayNameController.addListener(_onFieldsChanged);
+    _usernameController.addListener(_onFieldsChanged);
+  }
+
+  void _onFieldsChanged() => setState(() {});
+
   Future<void> _pickImage() async {
-    if (_isPickingImage) return; // 👈 prevent double-tap
+    if (_isPickingImage) return;
     setState(() => _isPickingImage = true);
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
       if (picked != null) {
         setState(() => _pickedImage = File(picked.path));
       }
@@ -49,7 +63,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
 
     context.read<UserBloc>().add(
       UpsertUser(
-        publicKey: address,
+        publicKey: address, // ← use real EVM address
         displayName: _displayNameController.text.trim(),
         profilePicture: _pickedImage?.path,
         defaultCurrency: 'INR',
@@ -59,6 +73,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
 
   @override
   void dispose() {
+    _displayNameController.removeListener(_onFieldsChanged);
+    _usernameController.removeListener(_onFieldsChanged);
     _displayNameController.dispose();
     _usernameController.dispose();
     super.dispose();
