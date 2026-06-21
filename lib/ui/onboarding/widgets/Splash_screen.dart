@@ -6,10 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart' hide State;
 import 'package:web3dart/credentials.dart';
 import 'package:zplit/routing/App_router.dart';
+import 'package:zplit/ui/users/view_model/user_bloc.dart';
 
 import 'package:zplit/ui/users/view_model/user_event.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
-import 'package:zplit/ui/users/view_models/user_bloc.dart';
 
 const _storage = FlutterSecureStorage();
 const _privateKeyStorageKey = 'evm_private_key';
@@ -53,10 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initWalletAndLoad() async {
-    // Generate wallet silently on first launch only
     await _ensureWalletExists();
 
-    // Then check if user has completed onboarding
     if (mounted) {
       context.read<UserBloc>().add(LoadAllUsers());
     }
@@ -92,7 +90,6 @@ class _SplashScreenState extends State<SplashScreen>
 
       debugPrint('EVM wallet generated silently ✓');
     } catch (e) {
-      // Non-fatal — wallet can be regenerated later
       debugPrint('Wallet generation error: $e');
     }
   }
@@ -105,7 +102,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Accessing your custom primary green color setup from your theme file
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return BlocListener<UserBloc, UserState>(
@@ -128,8 +124,7 @@ class _SplashScreenState extends State<SplashScreen>
         }
       },
       child: Scaffold(
-        backgroundColor:
-            primaryColor, // Beautiful full screen brand background color
+        backgroundColor: primaryColor,
         body: Center(
           child: FadeTransition(
             opacity: _fadeAnim,
@@ -149,7 +144,6 @@ class _ZplitLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pull image from asset path exactly as declared in your project tree structure
     return SizedBox(
       width: 140,
       height: 140,
@@ -157,7 +151,6 @@ class _ZplitLogo extends StatelessWidget {
         'assets/images/zplitLogo.png',
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
-          // Robust fallback check in case of any runtime dash/casing naming anomalies
           return Image.asset(
             'assets/images/zplit-logo.png',
             fit: BoxFit.contain,
