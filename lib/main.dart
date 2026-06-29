@@ -12,8 +12,10 @@ import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
+import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/core/theme/app_theme.dart';
+import 'package:zplit/ui/users/view_model/user_event.dart';
 
 class AppBlocObserver extends BlocObserver {
   @override
@@ -56,36 +58,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Create shared instances so all blocs use the same DAOs
+    final usersDao = UsersDao(_db);
+    final balancesDao = BalancesDao(_db);
+    final transactionsDao = TransactionsDao(_db);
+
+    final userRepository = UserRepositoryImpl(usersDao: usersDao);
+    final balanceRepository = BalanceRepositoryImpl(balancesDao: balancesDao);
+    final transactionRepository = TransactionRepositoryImpl(
+      transactionsDao: transactionsDao,
+      balancesDao: balancesDao,
+    );
+
+    // Create BalanceBloc first since TransactionBloc depends on it
+    final balanceBloc = BalanceBloc(balanceRepository: balanceRepository);
+
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) => UserBloc(
-            userRepository: UserRepositoryImpl(usersDao: UsersDao(_db)),
-          ),
-        ),
-        BlocProvider(
-          create: (_) => BalanceBloc(
-            balanceRepository: BalanceRepositoryImpl(
-              balancesDao: BalancesDao(_db),
-            ),
-          ),
-        ),
+        BlocProvider(create: (_) => UserBloc(userRepository: userRepository)),
+        BlocProvider.value(value: balanceBloc),
         BlocProvider(
           create: (_) => TransactionBloc(
-            transactionRepository: TransactionRepositoryImpl(
-              transactionsDao: TransactionsDao(_db),
-              balancesDao: BalancesDao(_db),
-            ),
+            transactionRepository: transactionRepository,
+            balanceBloc: balanceBloc, // ✅ injected
           ),
         ),
         BlocProvider(
           create: (_) => DeepLinkBloc(
-            userRepository: UserRepositoryImpl(usersDao: UsersDao(_db)),
-            // TransactionRepository now injected so incoming txns are persisted
-            transactionRepository: TransactionRepositoryImpl(
-              transactionsDao: TransactionsDao(_db),
-              balancesDao: BalancesDao(_db),
-            ),
+            userRepository: userRepository,
+            transactionRepository: transactionRepository,
           ),
         ),
       ],
@@ -134,9 +135,7 @@ class _DeepLinkListenerState extends State<DeepLinkListener> {
     final bloc = context.read<DeepLinkBloc>();
 
     final initial = await widget.deepLinkService.getInitialLink();
-    if (initial != null) {
-      bloc.add(DeepLinkReceived(initial));
-    }
+    if (initial != null) bloc.add(DeepLinkReceived(initial));
 
     widget.deepLinkService.listen((uri) {
       bloc.add(DeepLinkReceived(uri));
@@ -166,30 +165,19 @@ class _DeepLinkListenerState extends State<DeepLinkListener> {
               ),
             ),
           );
+          // Refresh users after invite
+          context.read<UserBloc>().add(LoadAllUsers());
           nav.pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
         } else if (state is TransactionReceived) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                'New transaction from ${state.fromUserId.substring(0, 6)}…',
-              ),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          // Navigate home first, then the HomeScreen BlocListener shows the popup
           nav.pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
         } else if (state is DeepLinkUnknownSender) {
           messenger.showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Transaction received from unknown contact. Ask them to share their invite link first.',
+            const SnackBar(
+              content: Text(
+                'Transaction from unknown contact. Ask them to share their invite link first.',
               ),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
             ),
           );
         } else if (state is DeepLinkError) {

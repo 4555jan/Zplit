@@ -78,6 +78,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
     String? description,
     String? tag,
   }) {
+    print('💾 SAVING TX WITH ID: $id');
     return _transactionsDao.insertOrIgnore(
       TransactionsTableCompanion.insert(
         id: id,
@@ -96,7 +97,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<void> signAsSender({
     required String transactionId,
     required String senderSignature,
-  }) async {}
+  }) async {
+    await _transactionsDao.updateSenderSignature(
+      transactionId,
+      senderSignature,
+    );
+  }
 
   @override
   Future<void> acceptTransaction({
@@ -105,6 +111,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
     required String signedBalancePayload,
   }) async {
     final existing = await _transactionsDao.getById(transactionId);
+    print('🔍 LOOKING FOR TX: $transactionId'); // ADD
+
+    print('🔍 FOUND: $existing'); // ADD
+
     if (existing == null) throw Exception('Transaction not found');
 
     await _transactionsDao.updateStatus(
@@ -113,12 +123,16 @@ class TransactionRepositoryImpl implements TransactionRepository {
       receiverSignature: receiverSignature,
     );
 
+    final counterpartyKey = existing.fromUserPublicKey;
+
     final currentBalance = await _balancesDao.getByPublicKeyAndCurrency(
-      existing.fromUserPublicKey,
+      counterpartyKey,
       existing.currency,
     );
+
     final currentNet = BigInt.from(currentBalance?.netAmount ?? 0);
-    final newNet = currentNet - existing.amount;
+
+    final newNet = currentNet + existing.amount;
 
     await _balancesDao.upsert(
       BalancesTableCompanion(
@@ -133,6 +147,6 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<void> rejectTransaction(String transactionId) async {
-    // Week 5 scope
+    await _transactionsDao.deleteById(transactionId);
   }
 }

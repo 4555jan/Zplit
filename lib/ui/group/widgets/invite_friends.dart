@@ -33,10 +33,10 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
     final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-    return 'zplit://invite/v1?d=$encoded';
+    return 'https://janvi34334-coder.github.io/zplit/invite?d=$encoded';
   }
 
-  String get _displayLink => 'zplit://invite/${widget.name}';
+  String get _displayLink => 'janvi34334-coder.github.io/zplit/invite';
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

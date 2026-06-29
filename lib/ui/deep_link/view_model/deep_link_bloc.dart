@@ -63,9 +63,8 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       return;
     }
 
-    // Self-receive guard — ignore if this is our own invite link
-    final myAddress = await _storage.read(key: _addressStorageKey);
-    if (myAddress != null && myAddress.toLowerCase() == id.toLowerCase()) {
+    final me = await _userRepository.getCurrentUser();
+    if (me != null && me.publicKey.toLowerCase() == id.toLowerCase()) {
       emit(DeepLinkInitial());
       return;
     }
@@ -97,10 +96,15 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       return;
     }
 
-    // Reject if sender is unknown — they must share invite link first
     final sender = await _userRepository.getUserByPublicKey(fromId);
     if (sender == null) {
       emit(DeepLinkUnknownSender(fromId));
+      return;
+    }
+
+    final me = await _userRepository.getCurrentUser();
+    if (me == null) {
+      emit(DeepLinkError('No local user found'));
       return;
     }
 
@@ -109,12 +113,10 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     final desc = json['desc'] as String? ?? '';
     final tag = json['tag'] as String?;
 
-    final myAddress = await _storage.read(key: _addressStorageKey) ?? '';
-
     await _transactionRepository.receiveIncoming(
       id: txnId,
       fromUserPublicKey: fromId,
-      toUserPublicKey: myAddress,
+      toUserPublicKey: me.publicKey, // ✅ fixed
       amount: BigInt.from((amount * 100).round()),
       currency: 'INR',
       description: desc,
@@ -125,6 +127,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       TransactionReceived(
         txnId: txnId,
         fromUserId: fromId,
+        fromUserName: sender.displayName,
         amount: amount,
         desc: desc,
         tag: tag,
