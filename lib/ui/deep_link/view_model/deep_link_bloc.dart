@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:zplit/core/services/deep_link_service.dart';
 import 'package:zplit/domain/repositories/transaction/transaction_repository.dart';
 import 'package:zplit/domain/repositories/user/user_repository.dart';
 
@@ -80,25 +81,26 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
   }
 
   Future<void> _handleTransaction(Uri uri, Emitter<DeepLinkState> emit) async {
-    final encoded = uri.queryParameters['d'];
-    if (encoded == null) {
-      emit(DeepLinkError('Missing payload'));
+    final tx = DeepLinkService.parseAndVerify(uri);
+
+    if (tx == null) {
+      emit(DeepLinkError('Invalid or unreadable transaction payload'));
       return;
     }
 
-    final json =
-        jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(encoded))))
-            as Map<String, dynamic>;
+    if (!tx.isVerified) {
+      emit(DeepLinkError('Transaction signature invalid — rejected'));
+      return;
+    }
 
-    final fromId = json['from'] as String? ?? '';
-    if (fromId.isEmpty) {
+    if (tx.fromPublicKey.isEmpty) {
       emit(DeepLinkError('Invalid transaction: missing sender'));
       return;
     }
 
-    final sender = await _userRepository.getUserByPublicKey(fromId);
+    final sender = await _userRepository.getUserByPublicKey(tx.fromPublicKey);
     if (sender == null) {
-      emit(DeepLinkUnknownSender(fromId));
+      emit(DeepLinkUnknownSender(tx.fromPublicKey));
       return;
     }
 
@@ -108,29 +110,24 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       return;
     }
 
-    final txnId = json['id'] as String? ?? '';
-    final amount = (json['amount'] as num?)?.toDouble() ?? 0.0;
-    final desc = json['desc'] as String? ?? '';
-    final tag = json['tag'] as String?;
-
     await _transactionRepository.receiveIncoming(
-      id: txnId,
-      fromUserPublicKey: fromId,
-      toUserPublicKey: me.publicKey, // ✅ fixed
-      amount: BigInt.from((amount * 100).round()),
+      id: tx.id,
+      fromUserPublicKey: tx.fromPublicKey,
+      toUserPublicKey: me.publicKey,
+      amount: BigInt.from((tx.amount * 100).round()),
       currency: 'INR',
-      description: desc,
-      tag: tag,
+      description: tx.description,
+      tag: tx.tag,
     );
 
     emit(
       TransactionReceived(
-        txnId: txnId,
-        fromUserId: fromId,
+        txnId: tx.id,
+        fromUserId: tx.fromPublicKey,
         fromUserName: sender.displayName,
-        amount: amount,
-        desc: desc,
-        tag: tag,
+        amount: tx.amount,
+        desc: tx.description,
+        tag: tx.tag,
       ),
     );
   }

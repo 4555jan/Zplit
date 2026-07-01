@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
@@ -190,44 +191,63 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     setState(() => _isSending = true);
 
     try {
-      final me =
-          await const FlutterSecureStorage().read(key: 'evm_address') ?? '';
+      final storage = const FlutterSecureStorage();
+      final me = await storage.read(key: 'evm_address') ?? '';
       final txnId = DateTime.now().millisecondsSinceEpoch.toString();
       final desc = _paidForController.text.trim();
       final tag = _selectedCategory.isEmpty ? null : _selectedCategory;
+      final splitType = _selectedSplit.isEmpty
+          ? 'Split Equally'
+          : _selectedSplit;
+      final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      // ✅ Calculate split amount
+      // 1. Calculate split amount
       final splitAmount = _calculateSplitAmount(totalAmount);
-      final splitAmountInPaise = BigInt.from((splitAmount.abs() * 100).round());
+      final splitAmountBigInt = BigInt.from((splitAmount.abs() * 100).round());
 
-      // 1. Save transaction locally with split amount
+      // 2. Sign the transaction payload with sender's private key
+      final senderSignature = await CryptoService.signTransaction(
+        id: txnId,
+        fromPublicKey: me,
+        toPublicKey: _selectedFriendPublicKey!,
+        amount: splitAmountBigInt,
+        currency: 'INR',
+        description: desc,
+        tag: tag,
+        timestamp: ts,
+      );
+
       context.read<TransactionBloc>().add(
         CreateTransaction(
           fromUserPublicKey: me,
           toUserPublicKey: _selectedFriendPublicKey!,
-          amount: splitAmountInPaise,
+          amount: splitAmountBigInt,
           currency: 'INR',
           description: desc,
           tag: tag,
         ),
       );
 
-      // 2. Build deep link payload with split amount
+      context.read<TransactionBloc>().add(
+        SignAsSender(transactionId: txnId, senderSignature: senderSignature),
+      );
+
       final payload = {
         'id': txnId,
         'from': me,
         'to': _selectedFriendPublicKey,
         'amount': splitAmount.abs(),
-        'split': _selectedSplit.isEmpty ? 'Split Equally' : _selectedSplit,
+        'split': splitType,
         'totalAmount': totalAmount,
         'desc': desc,
         'tag': tag,
-        'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'ts': ts,
+        'sig': senderSignature, // ✅ Week 5: sender signature
       };
       final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
       final link = 'https://janvi34334-coder.github.io/zplit/tx?d=$encoded';
 
-      // 3. Navigate to confirmation screen
+      // 6. Navigate to confirmation screen
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -236,9 +256,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             friendName: _selectedFriendName!,
             totalAmount: totalAmount,
             splitAmount: splitAmount.abs(),
-            splitType: _selectedSplit.isEmpty
-                ? 'Split Equally'
-                : _selectedSplit,
+            splitType: splitType,
             description: desc,
             tag: tag,
             deepLink: link,
@@ -468,7 +486,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
 
-              // ✅ Live split preview
               if (_amountController.text.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _buildSplitPreview(theme, colors),
@@ -694,11 +711,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -753,10 +771,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
-// Confirmation screen shown after sending
-// ─────────────────────────────────────────────
-
 class TransactionSentScreen extends StatelessWidget {
   final String friendName;
   final double totalAmount;
@@ -803,147 +817,143 @@ class TransactionSentScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 24),
-
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: colors.primary.withOpacity(0.1),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 24),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.primary.withOpacity(0.1),
+                ),
+                child: Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: colors.primary,
+                  size: 44,
+                ),
               ),
-              child: Icon(
-                Icons.check_circle_outline_rounded,
-                color: colors.primary,
-                size: 44,
+              const SizedBox(height: 20),
+              Text(
+                'Expense Sent!',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              'Expense Sent!',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 8),
+              Text(
+                '$friendName needs to accept this request',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.55),
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              '$friendName needs to accept this request',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.55),
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: theme.dividerColor.withOpacity(0.7)),
-              ),
-              child: Column(
-                children: [
-                  _summaryRow(theme, 'To', friendName),
-                  const SizedBox(height: 12),
-                  _summaryRow(
-                    theme,
-                    'Total Bill',
-                    '₹${totalAmount.toStringAsFixed(2)}',
+              const SizedBox(height: 32),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.dividerColor.withOpacity(0.7),
                   ),
-                  const SizedBox(height: 12),
-                  _summaryRow(theme, 'Split', splitType),
-                  const SizedBox(height: 12),
-                  _summaryRow(
-                    theme,
-                    '$friendName owes',
-                    '₹${splitAmount.toStringAsFixed(2)}',
-                    highlight: true,
-                    colors: colors,
-                  ),
-                  const SizedBox(height: 12),
-                  _summaryRow(theme, 'For', description),
-                  if (tag != null) ...[
+                ),
+                child: Column(
+                  children: [
+                    _summaryRow(theme, 'To', friendName),
                     const SizedBox(height: 12),
-                    _summaryRow(theme, 'Category', tag!),
-                  ],
-                  const SizedBox(height: 16),
-                  Divider(color: theme.dividerColor.withOpacity(0.5)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.pending_outlined,
-                        size: 16,
-                        color: colors.primary.withOpacity(0.7),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Waiting for $friendName to accept',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.primary.withOpacity(0.7),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                    _summaryRow(
+                      theme,
+                      'Total Bill',
+                      '₹${totalAmount.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 12),
+                    _summaryRow(theme, 'Split', splitType),
+                    const SizedBox(height: 12),
+                    _summaryRow(
+                      theme,
+                      '$friendName owes',
+                      '₹${splitAmount.toStringAsFixed(2)}',
+                      highlight: true,
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 12),
+                    _summaryRow(theme, 'For', description),
+                    if (tag != null) ...[
+                      const SizedBox(height: 12),
+                      _summaryRow(theme, 'Category', tag!),
                     ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () =>
-                    Share.share(deepLink, subject: 'Transaction from Zplit'),
-                icon: const Icon(Icons.ios_share_rounded, size: 20),
-                label: Text('Send Link to $friendName'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
+                    const SizedBox(height: 16),
+                    Divider(color: theme.dividerColor.withOpacity(0.5)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.pending_outlined,
+                          size: 16,
+                          color: colors.primary.withOpacity(0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Waiting for $friendName to accept',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.primary.withOpacity(0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) => false,
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () =>
+                      Share.share(deepLink, subject: 'Transaction from Zplit'),
+                  icon: const Icon(Icons.ios_share_rounded, size: 20),
+                  label: Text('Send Link to $friendName'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
                   ),
-                  side: BorderSide(color: theme.dividerColor),
                 ),
-                child: const Text('Back to Home'),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (route) => false,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    side: BorderSide(color: theme.dividerColor),
+                  ),
+                  child: const Text('Back to Home'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

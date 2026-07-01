@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/balance/view_model/balance_event.dart';
@@ -49,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _showAcceptRejectSheet(BuildContext context, TransactionReceived state) {
     final transactionBloc = context.read<TransactionBloc>();
-    final navigator = Navigator.of(context); // ✅ save navigator reference
+    final navigator = Navigator.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -84,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: OutlinedButton(
                       onPressed: () {
                         transactionBloc.add(RejectTransaction(state.txnId));
-                        navigator.pop(); // ✅ use saved navigator
+                        navigator.pop();
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -98,15 +99,50 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        transactionBloc.add(
-                          AcceptTransaction(
-                            transactionId: state.txnId,
-                            receiverSignature: '',
-                            signedBalancePayload: '',
-                          ),
-                        );
+                      onPressed: () async {
                         navigator.pop();
+                        try {
+                          final me =
+                              await const FlutterSecureStorage().read(
+                                key: 'evm_address',
+                              ) ??
+                              '';
+
+                          final netAmount = BigInt.from(
+                            (state.amount * 100).round(),
+                          );
+                          final receiverSignature =
+                              await CryptoService.signBalance(
+                                fromPublicKey: state.fromUserId,
+                                toPublicKey: me,
+                                netAmount: netAmount,
+                                currency: 'INR',
+                              );
+                          final signedBalancePayload =
+                              CryptoService.buildBalancePayload(
+                                fromPublicKey: state.fromUserId,
+                                toPublicKey: me,
+                                netAmount: netAmount,
+                                currency: 'INR',
+                                timestamp:
+                                    DateTime.now().millisecondsSinceEpoch ~/
+                                    1000,
+                              );
+
+                          transactionBloc.add(
+                            AcceptTransaction(
+                              transactionId: state.txnId,
+                              receiverSignature: receiverSignature,
+                              signedBalancePayload: signedBalancePayload,
+                            ),
+                          );
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Accept failed: $e')),
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
