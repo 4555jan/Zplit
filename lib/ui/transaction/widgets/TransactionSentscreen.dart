@@ -55,7 +55,6 @@ class TransactionSentScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
 
-            // ── Success icon ──
             Container(
               width: 80,
               height: 80,
@@ -175,7 +174,7 @@ class TransactionSentScreen extends StatelessWidget {
                   eyeShape: QrEyeShape.square,
                   color: colors.primary,
                 ),
-                dataModuleStyle: QrDataModuleStyle(
+                dataModuleStyle: const QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
                   color: Colors.black87,
                 ),
@@ -183,7 +182,7 @@ class TransactionSentScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Let $friendName scan this QR with Zplit',
+              'Let $friendName scan this with Zplit',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -211,9 +210,7 @@ class TransactionSentScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -232,7 +229,6 @@ class TransactionSentScreen extends StatelessWidget {
                 child: const Text('Back to Home'),
               ),
             ),
-
             const SizedBox(height: 32),
           ],
         ),

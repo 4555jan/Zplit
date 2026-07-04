@@ -108,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ) ??
                               '';
 
+                          // ✅ Week 5: receiver signs the balance
                           final netAmount = BigInt.from(
                             (state.amount * 100).round(),
                           );
@@ -259,13 +260,26 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.notifications_outlined,
-              color: theme.colorScheme.onSurface,
-              size: 26,
-            ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.qrScanner),
+                icon: Icon(
+                  Icons.qr_code_scanner,
+                  color: theme.colorScheme.onSurface,
+                  size: 26,
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: theme.colorScheme.onSurface,
+                  size: 26,
+                ),
+              ),
+            ],
           ),
         ],
       ),

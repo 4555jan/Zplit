@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:share_plus/share_plus.dart';
+
 import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
@@ -202,11 +202,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           : _selectedSplit;
       final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      // 1. Calculate split amount
       final splitAmount = _calculateSplitAmount(totalAmount);
       final splitAmountBigInt = BigInt.from((splitAmount.abs() * 100).round());
 
-      // 2. Sign the transaction payload with sender's private key
       final senderSignature = await CryptoService.signTransaction(
         id: txnId,
         fromPublicKey: me,
@@ -243,12 +241,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'desc': desc,
         'tag': tag,
         'ts': ts,
-        'sig': senderSignature, // ✅ Week 5: sender signature
+        'sig': senderSignature,
       };
       final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-      final link = 'https://janvi34334-coder.github.io/zplit/tx?d=$encoded';
+      final link = 'zplit://tx/v1?d=$encoded'; // ✅ Week 6: zplit:// scheme
 
-      // 6. Navigate to confirmation screen
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -288,9 +285,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     return BlocListener<TransactionBloc, TransactionState>(
       listener: (context, state) {
-        if (state is TransactionError) {
+        if (state is TransactionError)
           _showSnack('Transaction error: ${state.message}');
-        }
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -345,7 +341,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 20),
-
               _buildLabel(theme, 'On Date'),
               const SizedBox(height: 8),
               GestureDetector(
@@ -381,7 +376,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 20),
-
               _buildLabel(theme, 'Splitting With'),
               const SizedBox(height: 8),
               GestureDetector(
@@ -452,7 +446,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 20),
-
               _buildLabel(theme, 'How was this expense split?'),
               const SizedBox(height: 8),
               GestureDetector(
@@ -493,7 +486,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ],
 
               const SizedBox(height: 20),
-
               _buildLabel(theme, 'Paid for'),
               const SizedBox(height: 8),
               _buildInputField(
@@ -547,7 +539,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 20),
-
               _buildLabel(theme, 'Notes'),
               const SizedBox(height: 8),
               Container(
@@ -568,7 +559,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -600,7 +590,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 32),
             ],
           ),
@@ -612,9 +601,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget _buildSplitPreview(ThemeData theme, ColorScheme colors) {
     final total = double.tryParse(_amountController.text.trim()) ?? 0;
     if (total <= 0) return const SizedBox.shrink();
-
     final split = _calculateSplitAmount(total);
-
     String previewText;
     if (_selectedSplit == 'They Paid') {
       previewText =
@@ -626,7 +613,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       previewText =
           '${_selectedFriendName ?? 'Friend'} owes you ₹${split.abs().toStringAsFixed(2)}';
     }
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
