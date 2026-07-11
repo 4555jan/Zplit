@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/balance/view_model/balance_event.dart';
@@ -75,7 +74,11 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 16),
               _infoRow(theme, 'From', state.fromUserName),
-              _infoRow(theme, 'Amount', '₹${state.amount.toStringAsFixed(2)}'),
+              _infoRow(
+                theme,
+                'Amount',
+                '₹${state.amount.abs().toStringAsFixed(2)}',
+              ),
               if (state.desc.isNotEmpty) _infoRow(theme, 'Note', state.desc),
               if (state.tag != null) _infoRow(theme, 'Tag', state.tag!),
               const SizedBox(height: 28),
@@ -99,51 +102,11 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         navigator.pop();
-                        try {
-                          final me =
-                              await const FlutterSecureStorage().read(
-                                key: 'evm_address',
-                              ) ??
-                              '';
-
-                          // ✅ Week 5: receiver signs the balance
-                          final netAmount = BigInt.from(
-                            (state.amount * 100).round(),
-                          );
-                          final receiverSignature =
-                              await CryptoService.signBalance(
-                                fromPublicKey: state.fromUserId,
-                                toPublicKey: me,
-                                netAmount: netAmount,
-                                currency: 'INR',
-                              );
-                          final signedBalancePayload =
-                              CryptoService.buildBalancePayload(
-                                fromPublicKey: state.fromUserId,
-                                toPublicKey: me,
-                                netAmount: netAmount,
-                                currency: 'INR',
-                                timestamp:
-                                    DateTime.now().millisecondsSinceEpoch ~/
-                                    1000,
-                              );
-
-                          transactionBloc.add(
-                            AcceptTransaction(
-                              transactionId: state.txnId,
-                              receiverSignature: receiverSignature,
-                              signedBalancePayload: signedBalancePayload,
-                            ),
-                          );
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Accept failed: $e')),
-                            );
-                          }
-                        }
+                        transactionBloc.add(
+                          AcceptTransaction(transactionId: state.txnId),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,

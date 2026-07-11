@@ -107,10 +107,11 @@ class TransactionSentScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _summaryRow(theme, 'Split', splitType),
                   const SizedBox(height: 12),
+
                   _summaryRow(
                     theme,
-                    '$friendName owes',
-                    '₹${splitAmount.toStringAsFixed(2)}',
+                    splitAmount >= 0 ? '$friendName owes' : 'You owe',
+                    '₹${splitAmount.abs().toStringAsFixed(2)}',
                     highlight: true,
                     colors: colors,
                   ),
@@ -149,7 +150,6 @@ class TransactionSentScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // ── QR Code — Week 6 ──
             Text(
               'Scan to receive',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -191,7 +191,6 @@ class TransactionSentScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // ── Share button ──
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(

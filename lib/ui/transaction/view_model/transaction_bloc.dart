@@ -1,17 +1,24 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/domain/repositories/transaction/transaction_repository.dart';
+import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
+import 'package:zplit/ui/balance/view_model/balance_event.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 
 class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final TransactionRepository _transactionRepository;
+  final BalanceBloc _balanceBloc;
 
-  TransactionBloc({required TransactionRepository transactionRepository})
-    : _transactionRepository = transactionRepository,
-      super(TransactionInitial()) {
+  TransactionBloc({
+    required TransactionRepository transactionRepository,
+    required BalanceBloc balanceBloc,
+  }) : _transactionRepository = transactionRepository,
+       _balanceBloc = balanceBloc,
+       super(TransactionInitial()) {
     on<LoadAllTransactions>(_onLoadAllTransactions);
     on<GetTransactionById>(_onGetTransactionById);
     on<CreateTransaction>(_onCreateTransaction);
+    on<ReceiveIncomingTransaction>(_onReceiveIncoming);
     on<SignAsSender>(_onSignAsSender);
     on<AcceptTransaction>(_onAcceptTransaction);
     on<RejectTransaction>(_onRejectTransaction);
@@ -64,6 +71,28 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     }
   }
 
+  Future<void> _onReceiveIncoming(
+    ReceiveIncomingTransaction event,
+    Emitter<TransactionState> emit,
+  ) async {
+    emit(TransactionLoading());
+    try {
+      await _transactionRepository.receiveIncoming(
+        id: event.id,
+        fromUserPublicKey: event.fromUserPublicKey,
+        toUserPublicKey: event.toUserPublicKey,
+        amount: event.amount,
+        currency: event.currency,
+        description: event.description,
+        tag: event.tag,
+      );
+      final transactions = await _transactionRepository.getAllTransactions();
+      emit(TransactionLoaded(transactions));
+    } catch (e) {
+      emit(TransactionError(e.toString()));
+    }
+  }
+
   Future<void> _onSignAsSender(
     SignAsSender event,
     Emitter<TransactionState> emit,
@@ -89,9 +118,9 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     try {
       await _transactionRepository.acceptTransaction(
         transactionId: event.transactionId,
-        receiverSignature: event.receiverSignature,
-        signedBalancePayload: event.signedBalancePayload,
       );
+
+      _balanceBloc.add(LoadAllBalances());
       final transactions = await _transactionRepository.getAllTransactions();
       emit(TransactionLoaded(transactions));
     } catch (e) {

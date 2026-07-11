@@ -28,11 +28,7 @@ abstract class TransactionRepository {
     required String senderSignature,
   });
 
-  Future<void> acceptTransaction({
-    required String transactionId,
-    required String receiverSignature,
-    required String signedBalancePayload,
-  });
+  Future<void> acceptTransaction({required String transactionId});
 
   Future<void> rejectTransaction(String transactionId);
 }

@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
@@ -203,13 +204,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       final splitAmount = _calculateSplitAmount(totalAmount);
-      final splitAmountBigInt = BigInt.from((splitAmount.abs() * 100).round());
+      final signedAmountBigInt = BigInt.from((splitAmount * 100).round());
 
       final senderSignature = await CryptoService.signTransaction(
         id: txnId,
         fromPublicKey: me,
         toPublicKey: _selectedFriendPublicKey!,
-        amount: splitAmountBigInt,
+        amount: signedAmountBigInt,
         currency: 'INR',
         description: desc,
         tag: tag,
@@ -220,7 +221,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         CreateTransaction(
           fromUserPublicKey: me,
           toUserPublicKey: _selectedFriendPublicKey!,
-          amount: splitAmountBigInt,
+          amount: signedAmountBigInt,
           currency: 'INR',
           description: desc,
           tag: tag,
@@ -235,7 +236,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'id': txnId,
         'from': me,
         'to': _selectedFriendPublicKey,
-        'amount': splitAmount.abs(),
+        'amount': splitAmount,
         'split': splitType,
         'totalAmount': totalAmount,
         'desc': desc,
@@ -244,7 +245,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'sig': senderSignature,
       };
       final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-      final link = 'zplit://tx/v1?d=$encoded'; // ✅ Week 6: zplit:// scheme
+      final link = 'zplit://tx/v1?d=$encoded';
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -253,7 +254,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           builder: (_) => TransactionSentScreen(
             friendName: _selectedFriendName!,
             totalAmount: totalAmount,
-            splitAmount: splitAmount.abs(),
+            splitAmount: splitAmount,
             splitType: splitType,
             description: desc,
             tag: tag,
