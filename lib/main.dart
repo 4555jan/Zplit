@@ -4,18 +4,18 @@ import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/daos/transactions_dao.dart';
 import 'package:zplit/core/database/daos/users_dao.dart';
-import 'package:zplit/core/services/deep_link_service.dart';
 import 'package:zplit/data/balance/balance_repository.dart';
 import 'package:zplit/data/transaction/transaction_repository.dart';
 import 'package:zplit/data/user/user_repository.dart';
 import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
+import 'package:zplit/ui/bluetooth/bluetooth_link_bridge.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
+import 'package:zplit/ui/deep_link/app_listener.dart';
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
-import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/core/theme/app_theme.dart';
-import 'package:zplit/ui/users/view_model/user_event.dart';
 
 class AppBlocObserver extends BlocObserver {
   @override
@@ -44,7 +44,6 @@ class AppBlocObserver extends BlocObserver {
 }
 
 final _db = AppDatabase();
-final _deepLinkService = DeepLinkService();
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -58,7 +57,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Create shared instances so all blocs use the same DAOs
     final usersDao = UsersDao(_db);
     final balancesDao = BalancesDao(_db);
     final transactionsDao = TransactionsDao(_db);
@@ -70,7 +68,6 @@ class MyApp extends StatelessWidget {
       balancesDao: balancesDao,
     );
 
-    // Create BalanceBloc first since TransactionBloc depends on it
     final balanceBloc = BalanceBloc(balanceRepository: balanceRepository);
 
     return MultiBlocProvider(
@@ -80,7 +77,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (_) => TransactionBloc(
             transactionRepository: transactionRepository,
-            balanceBloc: balanceBloc, // ✅ injected
+            balanceBloc: balanceBloc,
           ),
         ),
         BlocProvider(
@@ -89,6 +86,7 @@ class MyApp extends StatelessWidget {
             transactionRepository: transactionRepository,
           ),
         ),
+        BlocProvider(create: (_) => BluetoothBloc()),
       ],
       child: MaterialApp(
         title: 'Zplit',
@@ -100,96 +98,9 @@ class MyApp extends StatelessWidget {
         onGenerateRoute: AppRouter.onGenerateRoute,
         initialRoute: AppRoutes.splash,
         builder: (context, child) {
-          return DeepLinkListener(
-            deepLinkService: _deepLinkService,
-            child: child!,
-          );
+          return AppLinkListener(child: BluetoothLinkBridge(child: child!));
         },
       ),
-    );
-  }
-}
-
-class DeepLinkListener extends StatefulWidget {
-  final DeepLinkService deepLinkService;
-  final Widget child;
-
-  const DeepLinkListener({
-    super.key,
-    required this.deepLinkService,
-    required this.child,
-  });
-
-  @override
-  State<DeepLinkListener> createState() => _DeepLinkListenerState();
-}
-
-class _DeepLinkListenerState extends State<DeepLinkListener> {
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
-  Future<void> _init() async {
-    final bloc = context.read<DeepLinkBloc>();
-
-    final initial = await widget.deepLinkService.getInitialLink();
-    if (initial != null) bloc.add(DeepLinkReceived(initial));
-
-    widget.deepLinkService.listen((uri) {
-      bloc.add(DeepLinkReceived(uri));
-    });
-  }
-
-  @override
-  void dispose() {
-    widget.deepLinkService.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<DeepLinkBloc, DeepLinkState>(
-      listener: (context, state) {
-        final nav = _navigatorKey.currentState!;
-        final messenger = ScaffoldMessenger.of(_navigatorKey.currentContext!);
-
-        if (state is InviteHandled) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('${state.displayName} added to your contacts!'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-          // Refresh users after invite
-          context.read<UserBloc>().add(LoadAllUsers());
-          nav.pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
-        } else if (state is TransactionReceived) {
-          // Navigate home first, then the HomeScreen BlocListener shows the popup
-          nav.pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
-        } else if (state is DeepLinkUnknownSender) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Transaction from unknown contact. Ask them to share their invite link first.',
-              ),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else if (state is DeepLinkError) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('Deep link error: ${state.message}'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      },
-      child: widget.child,
     );
   }
 }

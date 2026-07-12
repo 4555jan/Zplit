@@ -1,8 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // CHANGED
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zplit/core/services/bluetooth_service.dart' show BtEndpoint;
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_state.dart';
 
 class InviteFriendsScreen extends StatefulWidget {
   final String userId;
@@ -20,7 +25,6 @@ class InviteFriendsScreen extends StatefulWidget {
 }
 
 class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
-  bool _bluetoothEnabled = false;
   bool _proximityEnabled = false;
   bool _nfcEnabled = false;
   String _proximityFilter = 'Contacts Only';
@@ -37,6 +41,16 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
   }
 
   String get _displayLink => 'janvi34334-coder.github.io/zplit/invite';
+
+  String get _inviteJsonPayload {
+    return jsonEncode({
+      'id': widget.userId,
+      'name': widget.name,
+      'addr': widget.address,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -57,44 +71,229 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
         title: Text('Invite Friends', style: theme.textTheme.headlineSmall),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInviteLink(theme),
-            const SizedBox(height: 24),
-            _buildQRCode(theme),
-            const SizedBox(height: 24),
-            _buildToggleSection(
-              theme,
-              title: 'Bluetooth Pairing',
-              value: _bluetoothEnabled,
-              onChanged: (val) => setState(() => _bluetoothEnabled = val),
-              child: _bluetoothEnabled
-                  ? _buildNearbyDevices(theme, Icons.bluetooth_rounded)
-                  : _buildDisabledHint(
-                      theme,
-                      'Enable Bluetooth to see nearby devices.',
-                    ),
+
+      body: BlocListener<BluetoothBloc, BluetoothState>(
+        listenWhen: (prev, curr) => prev.errorMessage != curr.errorMessage,
+        listener: (context, state) {
+          if (state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInviteLink(theme),
+              const SizedBox(height: 24),
+              _buildQRCode(theme),
+              const SizedBox(height: 24),
+              _buildBluetoothSection(theme), // CHANGED
+              const SizedBox(height: 24),
+              _buildProximitySection(theme),
+              const SizedBox(height: 24),
+              _buildToggleSection(
+                theme,
+                title: 'NFC',
+                value: _nfcEnabled,
+                onChanged: (val) => setState(() => _nfcEnabled = val),
+                child: _nfcEnabled
+                    ? _buildNfcContent(theme)
+                    : _buildDisabledHint(
+                        theme,
+                        'Enable NFC to share with nearby devices.',
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // CHANGED: entire Bluetooth section rebuilt on real BluetoothBloc state.
+  Widget _buildBluetoothSection(ThemeData theme) {
+    return BlocBuilder<BluetoothBloc, BluetoothState>(
+      builder: (context, state) {
+        return _buildToggleSection(
+          theme,
+          title: 'Bluetooth Pairing',
+          value: state.enabled,
+          onChanged: (val) {
+            context.read<BluetoothBloc>().add(
+              BluetoothToggled(val, widget.name),
+            );
+          },
+          child: !state.enabled
+              ? (state.permissionDenied
+                    ? _buildDisabledHint(
+                        theme,
+                        'Bluetooth & nearby-device permissions are required. '
+                        'Enable them in system settings.',
+                      )
+                    : _buildDisabledHint(
+                        theme,
+                        'Enable Bluetooth to see nearby devices.',
+                      ))
+              : _buildRealNearbyDevices(theme, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildRealNearbyDevices(ThemeData theme, BluetoothState state) {
+    final colors = theme.colorScheme;
+    return Column(
+      children: [
+        Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colors.primary,
+          ),
+          child: const Icon(
+            Icons.bluetooth_rounded,
+            color: Colors.white,
+            size: 44,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Nearby Devices',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 24),
-            _buildProximitySection(theme),
-            const SizedBox(height: 24),
-            _buildToggleSection(
-              theme,
-              title: 'NFC',
-              value: _nfcEnabled,
-              onChanged: (val) => setState(() => _nfcEnabled = val),
-              child: _nfcEnabled
-                  ? _buildNfcContent(theme)
-                  : _buildDisabledHint(
-                      theme,
-                      'Enable NFC to share with nearby devices.',
-                    ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (state.nearbyEndpoints.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.primary.withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Searching for nearby Zplit users...',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...state.nearbyEndpoints.map(
+            (d) => _buildDeviceTile(d, theme, state.connectionStatus[d.id]),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDeviceTile(
+    BtEndpoint device,
+    ThemeData theme,
+    BtConnectionStatus? status,
+  ) {
+    final colors = theme.colorScheme;
+    final s = status ?? BtConnectionStatus.none;
+
+    Widget trailing;
+    switch (s) {
+      case BtConnectionStatus.connected:
+        trailing = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 18, color: colors.primary),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () {
+                // Send the invite payload once connected.
+                context.read<BluetoothBloc>().add(
+                  BluetoothSendPayload(device.id, _inviteJsonPayload),
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Invite sent to ${device.name}'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: Text(
+                'Send',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
-        ),
+        );
+        break;
+      case BtConnectionStatus.connecting:
+      case BtConnectionStatus.pending:
+        trailing = SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colors.primary,
+          ),
+        );
+        break;
+      case BtConnectionStatus.disconnected:
+        trailing = GestureDetector(
+          onTap: () => context.read<BluetoothBloc>().add(
+            BluetoothConnectRequested(device.id, widget.name),
+          ),
+          child: Text(
+            'Retry',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: colors.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+        break;
+      case BtConnectionStatus.none:
+        trailing = GestureDetector(
+          onTap: () => context.read<BluetoothBloc>().add(
+            BluetoothConnectRequested(device.id, widget.name),
+          ),
+          child: Text(
+            'Connect',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(device.name, style: theme.textTheme.bodyLarge),
+          trailing,
+        ],
       ),
     );
   }
@@ -332,7 +531,12 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             ],
           ),
           child: _proximityEnabled
-              ? _buildNearbyDevices(theme, Icons.wifi_tethering_rounded)
+              ? _buildDisabledHint(
+                  theme,
+                  'Proximity Sharing will reuse the Bluetooth transport — '
+                  'wire this to BluetoothBloc the same way once you decide '
+                  'whether it should be a separate discovery scope.',
+                )
               : _buildDisabledHint(
                   theme,
                   'Enable Proximity Sharing to find nearby contacts.',
@@ -365,36 +569,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     });
   }
 
-  Widget _buildNearbyDevices(ThemeData theme, IconData icon) {
-    final colors = theme.colorScheme;
-    final devices = ["Krishna's Phone", 'Iphone2', "Garima's Iphone"];
-    return Column(
-      children: [
-        Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colors.primary,
-          ),
-          child: Icon(icon, color: Colors.white, size: 44),
-        ),
-        const SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Nearby Devices',
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...devices.map((name) => _buildDeviceTile(name, theme)),
-      ],
-    );
-  }
-
   Widget _buildNfcContent(ThemeData theme) {
     final colors = theme.colorScheme;
     return Column(
@@ -417,29 +591,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDeviceTile(String name, ThemeData theme) {
-    final colors = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(name, style: theme.textTheme.bodyLarge),
-          GestureDetector(
-            onTap: () {},
-            child: Text(
-              'Connect',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: colors.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

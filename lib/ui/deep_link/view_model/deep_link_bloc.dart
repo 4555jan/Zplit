@@ -81,6 +81,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
   }
 
   Future<void> _handleTransaction(Uri uri, Emitter<DeepLinkState> emit) async {
+    // ✅ Week 5: parse + verify signature in one call
     final tx = DeepLinkService.parseAndVerify(uri);
 
     if (tx == null) {
@@ -88,8 +89,9 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       return;
     }
 
+    // ✅ Reject if signature is missing or doesn't match sender's address
     if (!tx.isVerified) {
-      emit(DeepLinkError('Transaction signature invalid — rejected'));
+      emit(DeepLinkError('⚠️ Transaction signature invalid — rejected'));
       return;
     }
 
