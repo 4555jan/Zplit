@@ -188,10 +188,12 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  'Searching for nearby Zplit users...',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                Expanded(
+                  child: Text(
+                    'Searching for nearby Zplit users...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
                   ),
                 ),
               ],
