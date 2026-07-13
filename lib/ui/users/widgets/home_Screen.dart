@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -211,17 +213,40 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
-              child: Icon(
-                Icons.person,
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
-            ),
+          BlocBuilder<UserBloc, UserState>(
+            builder: (context, state) {
+              String? profilePicturePath;
+              if (state is UserLoaded && _myAddress != null) {
+                final matches = state.users.where(
+                  (u) => u.publicKey == _myAddress,
+                );
+                if (matches.isNotEmpty) {
+                  profilePicturePath = matches.first.profilePicture;
+                }
+              }
+
+              final hasImage =
+                  profilePicturePath != null &&
+                  File(profilePicturePath).existsSync();
+
+              return GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+                child: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  backgroundImage: hasImage
+                      ? FileImage(File(profilePicturePath!))
+                      : null,
+                  child: !hasImage
+                      ? Icon(
+                          Icons.person,
+                          color: theme.colorScheme.primary,
+                          size: 24,
+                        )
+                      : null,
+                ),
+              );
+            },
           ),
           Row(
             children: [
@@ -256,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen>
 
         return BlocBuilder<BalanceBloc, BalanceState>(
           builder: (context, balanceState) {
-            int total = 0;
+            int totalPaise = 0;
             if (balanceState is BalanceLoaded) {
-              total = balanceState.balances.fold(
+              totalPaise = balanceState.balances.fold(
                 0,
                 (sum, b) => sum + b.netAmount,
               );
@@ -267,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen>
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: BalanceSummaryCard(
-                total: total,
+                total: totalPaise,
                 showAnalyticsButton: hasFriends,
                 onAnalyticsTap: () =>
                     Navigator.pushNamed(context, AppRoutes.analytics),
