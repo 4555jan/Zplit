@@ -22,7 +22,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
        _transactionRepository = transactionRepository,
        super(DeepLinkInitial()) {
     on<DeepLinkReceived>(_onDeepLinkReceived);
-    on<BluetoothInviteReceived>(_onBluetoothInviteReceived); // FIX: was missing
+    on<BluetoothInviteReceived>(_onBluetoothInviteReceived);
   }
 
   Future<void> _onDeepLinkReceived(
@@ -45,10 +45,6 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     }
   }
 
-  /// FIX: handles an invite payload received over Bluetooth. It's raw
-  /// JSON ({id, name, addr, ts}), not a base64/URI-wrapped payload, so
-  /// it's decoded directly and routed through the same upsert logic as
-  /// the QR/deep-link invite flow.
   Future<void> _onBluetoothInviteReceived(
     BluetoothInviteReceived event,
     Emitter<DeepLinkState> emit,
@@ -76,8 +72,6 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     await _upsertFromInviteJson(json, emit);
   }
 
-  /// FIX: shared by both the URI invite path and the Bluetooth invite
-  /// path so "add this user as a contact" logic lives in one place.
   Future<void> _upsertFromInviteJson(
     Map<String, dynamic> json,
     Emitter<DeepLinkState> emit,
@@ -108,7 +102,6 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
   }
 
   Future<void> _handleTransaction(Uri uri, Emitter<DeepLinkState> emit) async {
-    // ✅ Week 5: parse + verify signature in one call
     final tx = DeepLinkService.parseAndVerify(uri);
 
     if (tx == null) {
@@ -116,9 +109,8 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       return;
     }
 
-    // ✅ Reject if signature is missing or doesn't match sender's address
     if (!tx.isVerified) {
-      emit(DeepLinkError('⚠️ Transaction signature invalid — rejected'));
+      emit(DeepLinkError(' Transaction signature invalid — rejected'));
       return;
     }
 
