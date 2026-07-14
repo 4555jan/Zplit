@@ -196,12 +196,6 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
-        bottomNavigationBar: SafeArea(
-          child: HomeBottomNav(
-            selectedIndex: _selectedNavIndex,
-            onTap: (index) => setState(() => _selectedNavIndex = index),
-          ),
-        ),
       ),
     );
   }
