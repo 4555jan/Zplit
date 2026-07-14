@@ -22,6 +22,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
        _transactionRepository = transactionRepository,
        super(DeepLinkInitial()) {
     on<DeepLinkReceived>(_onDeepLinkReceived);
+    on<BluetoothInviteReceived>(_onBluetoothInviteReceived); // FIX: was missing
   }
 
   Future<void> _onDeepLinkReceived(
@@ -44,6 +45,23 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     }
   }
 
+  /// FIX: handles an invite payload received over Bluetooth. It's raw
+  /// JSON ({id, name, addr, ts}), not a base64/URI-wrapped payload, so
+  /// it's decoded directly and routed through the same upsert logic as
+  /// the QR/deep-link invite flow.
+  Future<void> _onBluetoothInviteReceived(
+    BluetoothInviteReceived event,
+    Emitter<DeepLinkState> emit,
+  ) async {
+    emit(DeepLinkLoading());
+    try {
+      final json = jsonDecode(event.jsonPayload) as Map<String, dynamic>;
+      await _upsertFromInviteJson(json, emit);
+    } catch (e) {
+      emit(DeepLinkError(e.toString()));
+    }
+  }
+
   Future<void> _handleInvite(Uri uri, Emitter<DeepLinkState> emit) async {
     final encoded = uri.queryParameters['d'];
     if (encoded == null) {
@@ -55,6 +73,15 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
         jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(encoded))))
             as Map<String, dynamic>;
 
+    await _upsertFromInviteJson(json, emit);
+  }
+
+  /// FIX: shared by both the URI invite path and the Bluetooth invite
+  /// path so "add this user as a contact" logic lives in one place.
+  Future<void> _upsertFromInviteJson(
+    Map<String, dynamic> json,
+    Emitter<DeepLinkState> emit,
+  ) async {
     final id = json['id'] as String? ?? '';
     final name = json['name'] as String? ?? id;
     final addr = json['addr'] as String? ?? '';
