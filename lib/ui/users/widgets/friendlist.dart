@@ -27,7 +27,7 @@ class _FriendsListState extends State<FriendsList> {
   DateTime? _fromDate;
   DateTime? _toDate;
   double _amountFrom = 0;
-  double _amountTo = 5000; // ✅ interpreted as ₹5000 — see _applyFilters
+  double _amountTo = 5000;
 
   String _monthLabel(DateTime date) {
     const months = [
@@ -83,11 +83,6 @@ class _FriendsListState extends State<FriendsList> {
     return users.where((user) {
       final balance = balanceMap[user.publicKey];
 
-      // ✅ FIX: netAmount is stored in paise (see FriendDetailScreen,
-      // HomeScreen — everywhere else divides by 100 before displaying).
-      // _amountFrom/_amountTo are rupee-scale (they drive a "₹" text field
-      // in the filter sheet), so convert before comparing or every real
-      // balance over ₹50 gets silently filtered out by the default range.
       final amountInRupees = (balance?.netAmount ?? 0) / 100.0;
 
       if (_quickFilter == 'owe' && amountInRupees >= 0) return false;
@@ -140,8 +135,6 @@ class _FriendsListState extends State<FriendsList> {
       grouped[label]!.add(user);
     }
 
-    // ✅ Only show "you have active filters" affordance / empty-state copy
-    // that distinguishes "no friends at all" from "filters hid everyone".
     final filtersActive =
         _quickFilter.isNotEmpty ||
         _dateFilter.isNotEmpty ||

@@ -1,5 +1,3 @@
-// lib/core/deeplink/app_link_listener.dart
-
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +23,6 @@ class _AppLinkListenerState extends State<AppLinkListener> {
   }
 
   Future<void> _init() async {
-    // cold start
     try {
       final initial = await _appLinks.getInitialLink();
       if (initial != null) _dispatch(initial);

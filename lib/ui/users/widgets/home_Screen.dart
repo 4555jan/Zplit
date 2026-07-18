@@ -1,4 +1,6 @@
+import 'dart:convert'; // CHANGED
 import 'dart:io';
+import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +9,8 @@ import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/balance/view_model/balance_event.dart';
 import 'package:zplit/ui/balance/view_model/balance_state.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart'; // CHANGED
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart'; // CHANGED
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
@@ -41,12 +45,27 @@ class _HomeScreenState extends State<HomeScreen>
 
     context.read<UserBloc>().add(LoadAllUsers());
     context.read<BalanceBloc>().add(LoadAllBalances());
+    context.read<UserBloc>().add(LoadAllUsers());
+    context.read<BalanceBloc>().add(LoadAllBalances());
+    context.read<TransactionBloc>().add(LoadAllTransactions());
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _sendAck(BuildContext context, String txnId, String outcome) {
+    final endpointId = context
+        .read<BluetoothBloc>()
+        .state
+        .lastReceivedFromEndpointId;
+    if (endpointId == null) return;
+    final payload = jsonEncode({'id': txnId, 'outcome': outcome});
+    context.read<BluetoothBloc>().add(
+      BluetoothSendPayload(endpointId, payload),
+    );
   }
 
   void _showAcceptRejectSheet(BuildContext context, TransactionReceived state) {
@@ -90,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: OutlinedButton(
                       onPressed: () {
                         transactionBloc.add(RejectTransaction(state.txnId));
+                        _sendAck(context, state.txnId, 'rejected'); // CHANGED
                         navigator.pop();
                       },
                       style: OutlinedButton.styleFrom(
@@ -109,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen>
                         transactionBloc.add(
                           AcceptTransaction(transactionId: state.txnId),
                         );
+                        _sendAck(context, state.txnId, 'accepted'); // CHANGED
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
@@ -177,6 +198,20 @@ class _HomeScreenState extends State<HomeScreen>
                   behavior: SnackBarBehavior.floating,
                 ),
               );
+            }
+
+            if (state is TransactionAckReceived) {
+              final msg = state.outcome == 'rejected'
+                  ? 'Transaction was rejected'
+                  : 'Transaction was accepted';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(msg),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              context.read<TransactionBloc>().add(LoadAllTransactions());
+              context.read<BalanceBloc>().add(LoadAllBalances());
             }
           },
         ),

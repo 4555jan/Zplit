@@ -37,3 +37,9 @@ class DeepLinkError extends DeepLinkState {
   final String message;
   DeepLinkError(this.message);
 }
+
+class TransactionAckReceived extends DeepLinkState {
+  final String txnId;
+  final String outcome; // 'rejected' | 'accepted'
+  TransactionAckReceived({required this.txnId, required this.outcome});
+}

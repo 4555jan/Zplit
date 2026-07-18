@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:zplit/domain/models/balance/balance_model.dart';
 import 'package:zplit/domain/models/user/user_model.dart';
@@ -42,6 +43,12 @@ class FriendTile extends StatelessWidget {
         ? ''
         : '$currency${(amount.abs() / 100).toStringAsFixed(2)}';
 
+    // ✅ profilePicture is a local file path (saved during sync), not a
+    // URL — NetworkImage silently fails on it. Use FileImage instead, and
+    // check existence so a missing/deleted file falls back to the initial.
+    final hasImage =
+        user.profilePicture != null && File(user.profilePicture!).existsSync();
+
     return InkWell(
       onTap: () {
         Navigator.pushNamed(
@@ -62,10 +69,10 @@ class FriendTile extends StatelessWidget {
             CircleAvatar(
               radius: 24,
               backgroundColor: colors.primary.withOpacity(0.12),
-              backgroundImage: user.profilePicture != null
-                  ? NetworkImage(user.profilePicture!)
+              backgroundImage: hasImage
+                  ? FileImage(File(user.profilePicture!))
                   : null,
-              child: user.profilePicture == null
+              child: !hasImage
                   ? Text(
                       user.displayName.isNotEmpty
                           ? user.displayName[0].toUpperCase()

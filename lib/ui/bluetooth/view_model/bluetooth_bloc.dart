@@ -10,8 +10,8 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
   StreamSubscription<ZplitBtEvent>? _sub;
 
   BluetoothBloc({BluetoothTransportService? service})
-      : _service = service ?? BluetoothTransportService(),
-        super(const BluetoothState()) {
+    : _service = service ?? BluetoothTransportService(),
+      super(const BluetoothState()) {
     on<BluetoothToggled>(_onToggled);
     on<BluetoothConnectRequested>(_onConnectRequested);
     on<BluetoothConnectionAccepted>(_onConnectionAccepted);
@@ -23,14 +23,19 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
     _sub = _service.events.listen((e) => add(BluetoothInternalEvent(e)));
   }
 
-  Future<void> _onToggled(BluetoothToggled e, Emitter<BluetoothState> emit) async {
+  Future<void> _onToggled(
+    BluetoothToggled e,
+    Emitter<BluetoothState> emit,
+  ) async {
     if (!e.enabled) {
       await _service.stopAll();
-      emit(state.copyWith(
-        enabled: false,
-        nearbyEndpoints: [],
-        connectionStatus: {},
-      ));
+      emit(
+        state.copyWith(
+          enabled: false,
+          nearbyEndpoints: [],
+          connectionStatus: {},
+        ),
+      );
       return;
     }
 
@@ -40,31 +45,43 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
       return;
     }
 
-    emit(state.copyWith(enabled: true, permissionDenied: false, clearError: true));
+    emit(
+      state.copyWith(enabled: true, permissionDenied: false, clearError: true),
+    );
     await _service.startAdvertising(e.myDisplayName);
     await _service.startDiscovery(e.myDisplayName);
   }
 
   Future<void> _onConnectRequested(
-      BluetoothConnectRequested e, Emitter<BluetoothState> emit) async {
-    final statuses = Map<String, BtConnectionStatus>.from(state.connectionStatus);
+    BluetoothConnectRequested e,
+    Emitter<BluetoothState> emit,
+  ) async {
+    final statuses = Map<String, BtConnectionStatus>.from(
+      state.connectionStatus,
+    );
     statuses[e.endpointId] = BtConnectionStatus.connecting;
     emit(state.copyWith(connectionStatus: statuses));
     await _service.requestConnection(e.myDisplayName, e.endpointId);
   }
 
   Future<void> _onConnectionAccepted(
-      BluetoothConnectionAccepted e, Emitter<BluetoothState> emit) async {
+    BluetoothConnectionAccepted e,
+    Emitter<BluetoothState> emit,
+  ) async {
     await _service.acceptConnection(e.endpointId);
   }
 
   Future<void> _onConnectionRejected(
-      BluetoothConnectionRejected e, Emitter<BluetoothState> emit) async {
+    BluetoothConnectionRejected e,
+    Emitter<BluetoothState> emit,
+  ) async {
     await _service.rejectConnection(e.endpointId);
   }
 
   Future<void> _onSendPayload(
-      BluetoothSendPayload e, Emitter<BluetoothState> emit) async {
+    BluetoothSendPayload e,
+    Emitter<BluetoothState> emit,
+  ) async {
     try {
       await _service.sendPayload(e.endpointId, e.jsonPayload);
     } catch (err) {
@@ -73,13 +90,20 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
   }
 
   Future<void> _onDisconnectRequested(
-      BluetoothDisconnectRequested e, Emitter<BluetoothState> emit) async {
+    BluetoothDisconnectRequested e,
+    Emitter<BluetoothState> emit,
+  ) async {
     await _service.disconnect(e.endpointId);
   }
 
-  void _onInternalEvent(BluetoothInternalEvent wrapped, Emitter<BluetoothState> emit) {
+  void _onInternalEvent(
+    BluetoothInternalEvent wrapped,
+    Emitter<BluetoothState> emit,
+  ) {
     final e = wrapped.rawEvent;
-    final statuses = Map<String, BtConnectionStatus>.from(state.connectionStatus);
+    final statuses = Map<String, BtConnectionStatus>.from(
+      state.connectionStatus,
+    );
     final progressMap = Map<String, double>.from(state.transferProgress);
 
     switch (e) {
@@ -89,14 +113,12 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
         emit(state.copyWith(nearbyEndpoints: list));
 
       case BtEndpointLost(:final endpointId):
-        final list = state.nearbyEndpoints.where((d) => d.id != endpointId).toList();
+        final list = state.nearbyEndpoints
+            .where((d) => d.id != endpointId)
+            .toList();
         emit(state.copyWith(nearbyEndpoints: list));
 
       case BtConnectionInitiated(:final endpointId):
-        // Auto-accept. If you'd rather show a confirmation dialog with
-        // the authenticationToken first, emit a distinct state here
-        // instead and call add(BluetoothConnectionAccepted(...)) from
-        // the dialog's "Confirm" button.
         statuses[endpointId] = BtConnectionStatus.pending;
         emit(state.copyWith(connectionStatus: statuses));
         add(BluetoothConnectionAccepted(endpointId));
@@ -116,21 +138,23 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
         emit(state.copyWith(connectionStatus: statuses, errorMessage: message));
 
       case BtDisconnected(:final endpointId):
-        // Edge case: connection dropped mid-transfer. Reset status so
-        // the UI shows "Connect" again rather than a stale "Connected".
         statuses[endpointId] = BtConnectionStatus.disconnected;
         progressMap.remove(endpointId);
-        emit(state.copyWith(
-          connectionStatus: statuses,
-          transferProgress: progressMap,
-          errorMessage: 'Connection lost — you can reconnect and resend',
-        ));
+        emit(
+          state.copyWith(
+            connectionStatus: statuses,
+            transferProgress: progressMap,
+            errorMessage: 'Connection lost — you can reconnect and resend',
+          ),
+        );
 
       case BtPayloadReceived(:final endpointId, :final jsonPayload):
-        emit(state.copyWith(
-          lastReceivedPayload: jsonPayload,
-          lastReceivedFromEndpointId: endpointId,
-        ));
+        emit(
+          state.copyWith(
+            lastReceivedPayload: jsonPayload,
+            lastReceivedFromEndpointId: endpointId,
+          ),
+        );
 
       case BtTransferProgress(:final endpointId, :final progress):
         progressMap[endpointId] = progress;
@@ -138,8 +162,6 @@ class BluetoothBloc extends Bloc<BluetoothEvent, BluetoothState> {
     }
   }
 
-  /// Call after your listener has routed lastReceivedPayload into
-  /// TransactionBloc, so the same payload doesn't get processed twice.
   void clearReceivedPayload() {
     emit(state.copyWith(clearReceived: true));
   }

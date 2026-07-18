@@ -23,14 +23,10 @@ class BtEndpointLost extends ZplitBtEvent {
   BtEndpointLost(this.endpointId);
 }
 
-/// Fired on BOTH devices when a connection is being negotiated. Nearby
-/// Connections requires each side to explicitly accept before data can
-/// flow — this is your hook to show a "Pairing with X..." confirmation
-/// if you want one (optional — you can also auto-accept, see bloc).
 class BtConnectionInitiated extends ZplitBtEvent {
   final String endpointId;
   final String endpointName;
-  final String authenticationToken; // show this so users can verify vs. MITM
+  final String authenticationToken;
   BtConnectionInitiated(
     this.endpointId,
     this.endpointName,

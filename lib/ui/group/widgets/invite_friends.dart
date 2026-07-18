@@ -1,13 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // CHANGED
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:zplit/core/services/bluetooth_service.dart' show BtEndpoint;
 import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
 import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
 import 'package:zplit/ui/bluetooth/view_model/bluetooth_state.dart';
+import 'package:zplit/ui/users/view_model/user_bloc.dart';
+import 'package:zplit/ui/users/view_model/user_state.dart';
 
 class InviteFriendsScreen extends StatefulWidget {
   final String userId;
@@ -29,7 +32,36 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
   bool _nfcEnabled = false;
   String _proximityFilter = 'Contacts Only';
 
+  // NEW — our own profile picture path, used to attach a thumbnail to the
+  // Bluetooth invite payload so both devices sync pictures on connect.
+  String? _myProfilePicturePath;
+
+  // NEW — tracks endpoints we've already auto-sent our profile to, so we
+  // don't resend on every unrelated connectionStatus map change.
+  final Set<String> _autoSentTo = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyProfilePicture();
+  }
+
+  void _loadMyProfilePicture() {
+    final userState = context.read<UserBloc>().state;
+    if (userState is UserLoaded) {
+      final matches = userState.users.where(
+        (u) => u.publicKey == widget.userId,
+      );
+      if (matches.isNotEmpty) {
+        setState(() => _myProfilePicturePath = matches.first.profilePicture);
+      }
+    }
+  }
+
   String get _inviteDeepLink {
+    // Deep link / QR stays lightweight (no picture) — URL and QR payload
+    // size limits make embedding a base64 image here risky. Picture sync
+    // happens over Bluetooth's _inviteJsonPayload instead.
     final payload = {
       'id': widget.userId,
       'name': widget.name,
@@ -42,11 +74,26 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
 
   String get _displayLink => 'janvi34334-coder.github.io/zplit/invite';
 
+  // CHANGED — now includes a base64-encoded profile picture when available.
+  // Bluetooth payloads aren't size-constrained like QR/deep links, so it's
+  // safe to attach the full picture here.
   String get _inviteJsonPayload {
+    String? picBase64;
+    final path = _myProfilePicturePath;
+    if (path != null && File(path).existsSync()) {
+      try {
+        picBase64 = base64Encode(File(path).readAsBytesSync());
+      } catch (e) {
+        debugPrint('Failed to read profile picture for invite payload: $e');
+        picBase64 = null;
+      }
+    }
+
     return jsonEncode({
       'id': widget.userId,
       'name': widget.name,
       'addr': widget.address,
+      'pic': picBase64,
       'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     });
   }
@@ -73,7 +120,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       ),
 
       body: BlocListener<BluetoothBloc, BluetoothState>(
-        listenWhen: (prev, curr) => prev.errorMessage != curr.errorMessage,
+        listenWhen: (prev, curr) =>
+            prev.errorMessage != curr.errorMessage ||
+            prev.connectionStatus != curr.connectionStatus,
         listener: (context, state) {
           if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +132,20 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               ),
             );
           }
+
+          // NEW — the instant any endpoint becomes connected, automatically
+          // send our own profile (name + picture) without waiting for the
+          // user to tap "Send". Both devices run this same logic, so a
+          // single connection syncs profile pictures in both directions.
+          state.connectionStatus.forEach((endpointId, status) {
+            if (status == BtConnectionStatus.connected &&
+                !_autoSentTo.contains(endpointId)) {
+              _autoSentTo.add(endpointId);
+              context.read<BluetoothBloc>().add(
+                BluetoothSendPayload(endpointId, _inviteJsonPayload),
+              );
+            }
+          });
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
@@ -93,7 +156,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               const SizedBox(height: 24),
               _buildQRCode(theme),
               const SizedBox(height: 24),
-              _buildBluetoothSection(theme), // CHANGED
+              _buildBluetoothSection(theme),
               const SizedBox(height: 24),
               _buildProximitySection(theme),
               const SizedBox(height: 24),
@@ -116,7 +179,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     );
   }
 
-  // CHANGED: entire Bluetooth section rebuilt on real BluetoothBloc state.
   Widget _buildBluetoothSection(ThemeData theme) {
     return BlocBuilder<BluetoothBloc, BluetoothState>(
       builder: (context, state) {
@@ -218,6 +280,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     Widget trailing;
     switch (s) {
       case BtConnectionStatus.connected:
+        // CHANGED — profile is already auto-sent on connect (see
+        // BlocListener above). This now just re-sends on demand, e.g. if
+        // the picture changed after connecting.
         trailing = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -225,7 +290,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             const SizedBox(width: 6),
             GestureDetector(
               onTap: () {
-                // Send the invite payload once connected.
                 context.read<BluetoothBloc>().add(
                   BluetoothSendPayload(device.id, _inviteJsonPayload),
                 );

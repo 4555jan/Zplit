@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
 
-class TransactionSentScreen extends StatelessWidget {
+class TransactionSentScreen extends StatefulWidget {
   final String friendName;
   final double totalAmount;
   final double splitAmount;
@@ -10,6 +13,10 @@ class TransactionSentScreen extends StatelessWidget {
   final String description;
   final String? tag;
   final String deepLink;
+
+  final bool sentViaBluetooth;
+  final String? bluetoothEndpointId;
+  final String? bluetoothJsonPayload;
 
   const TransactionSentScreen({
     super.key,
@@ -20,7 +27,37 @@ class TransactionSentScreen extends StatelessWidget {
     required this.description,
     this.tag,
     required this.deepLink,
+    this.sentViaBluetooth = false,
+    this.bluetoothEndpointId,
+    this.bluetoothJsonPayload,
   });
+
+  @override
+  State<TransactionSentScreen> createState() => _TransactionSentScreenState();
+}
+
+class _TransactionSentScreenState extends State<TransactionSentScreen> {
+  bool _resent = false;
+
+  void _resendViaBluetooth() {
+    if (widget.bluetoothEndpointId == null ||
+        widget.bluetoothJsonPayload == null) {
+      return;
+    }
+    context.read<BluetoothBloc>().add(
+      BluetoothSendPayload(
+        widget.bluetoothEndpointId!,
+        widget.bluetoothJsonPayload!,
+      ),
+    );
+    setState(() => _resent = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Resent to ${widget.friendName} via Bluetooth'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,12 +114,18 @@ class TransactionSentScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '$friendName needs to accept this request',
+              '${widget.friendName} needs to accept this request',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.55),
               ),
               textAlign: TextAlign.center,
             ),
+
+            // NEW — persistent Bluetooth-sent status card.
+            if (widget.sentViaBluetooth) ...[
+              const SizedBox(height: 20),
+              _buildBluetoothStatusCard(theme, colors),
+            ],
 
             const SizedBox(height: 32),
 
@@ -97,29 +140,32 @@ class TransactionSentScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _summaryRow(theme, 'To', friendName),
+                  _summaryRow(theme, 'To', widget.friendName),
                   const SizedBox(height: 12),
                   _summaryRow(
                     theme,
                     'Total Bill',
-                    '₹${totalAmount.toStringAsFixed(2)}',
+                    '₹${widget.totalAmount.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 12),
-                  _summaryRow(theme, 'Split', splitType),
+                  _summaryRow(theme, 'Split', widget.splitType),
                   const SizedBox(height: 12),
 
                   _summaryRow(
                     theme,
-                    splitAmount >= 0 ? '$friendName owes' : 'You owe',
-                    '₹${splitAmount.abs().toStringAsFixed(2)}',
+
+                    widget.splitAmount >= 0
+                        ? 'You owe'
+                        : '${widget.friendName} owes',
+                    '₹${widget.splitAmount.abs().toStringAsFixed(2)}',
                     highlight: true,
                     colors: colors,
                   ),
                   const SizedBox(height: 12),
-                  _summaryRow(theme, 'For', description),
-                  if (tag != null) ...[
+                  _summaryRow(theme, 'For', widget.description),
+                  if (widget.tag != null) ...[
                     const SizedBox(height: 12),
-                    _summaryRow(theme, 'Category', tag!),
+                    _summaryRow(theme, 'Category', widget.tag!),
                   ],
                   const SizedBox(height: 16),
                   Divider(color: theme.dividerColor.withOpacity(0.5)),
@@ -134,7 +180,7 @@ class TransactionSentScreen extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Waiting for $friendName to accept',
+                          'Waiting for ${widget.friendName} to accept',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.primary.withOpacity(0.7),
                             fontWeight: FontWeight.w500,
@@ -151,7 +197,9 @@ class TransactionSentScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             Text(
-              'Scan to receive',
+              widget.sentViaBluetooth
+                  ? 'Or share as backup'
+                  : 'Scan to receive',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
                 fontWeight: FontWeight.w600,
@@ -166,7 +214,7 @@ class TransactionSentScreen extends StatelessWidget {
                 border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
               ),
               child: QrImageView(
-                data: deepLink,
+                data: widget.deepLink,
                 version: QrVersions.auto,
                 size: 200,
                 backgroundColor: Colors.white,
@@ -182,7 +230,7 @@ class TransactionSentScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Let $friendName scan this with Zplit',
+              'Let ${widget.friendName} scan this with Zplit',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -194,10 +242,12 @@ class TransactionSentScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () =>
-                    Share.share(deepLink, subject: 'Transaction from Zplit'),
+                onPressed: () => Share.share(
+                  widget.deepLink,
+                  subject: 'Transaction from Zplit',
+                ),
                 icon: const Icon(Icons.ios_share_rounded, size: 20),
-                label: Text('Send Link to $friendName'),
+                label: Text('Send Link to ${widget.friendName}'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: Colors.white,
@@ -231,6 +281,52 @@ class TransactionSentScreen extends StatelessWidget {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBluetoothStatusCard(ThemeData theme, ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.primary.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.bluetooth_connected_rounded, color: colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _resent
+                  ? 'Resent to ${widget.friendName} via Bluetooth'
+                  : 'Sent to ${widget.friendName} via Bluetooth',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (widget.bluetoothEndpointId != null)
+            TextButton(
+              onPressed: _resendViaBluetooth,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Resend',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

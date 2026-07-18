@@ -9,12 +9,6 @@ class BluetoothLinkBridge extends StatelessWidget {
   final Widget child;
   const BluetoothLinkBridge({required this.child, super.key});
 
-  // FIX: payloads sent over Bluetooth are raw JSON (see
-  // InviteFriendsScreen._inviteJsonPayload), not a `zplit://` URI —
-  // there's no deep-link scheme involved at all on this transport.
-  // Parsing as a Uri always "succeeded" but with an empty/wrong scheme,
-  // so every payload silently fell into the error branch and was
-  // discarded before ever reaching DeepLinkBloc.
   void _handlePayload(BuildContext context, String rawPayload) {
     final bluetoothBloc = context.read<BluetoothBloc>();
 
@@ -24,7 +18,15 @@ class BluetoothLinkBridge extends StatelessWidget {
         throw const FormatException('Payload is not a JSON object');
       }
 
-      context.read<DeepLinkBloc>().add(BluetoothInviteReceived(rawPayload));
+      if (decoded.containsKey('outcome')) {
+        context.read<DeepLinkBloc>().add(BluetoothAckReceived(rawPayload));
+      } else if (decoded.containsKey('sig')) {
+        context.read<DeepLinkBloc>().add(
+          BluetoothTransactionReceived(rawPayload),
+        );
+      } else {
+        context.read<DeepLinkBloc>().add(BluetoothInviteReceived(rawPayload));
+      }
     } catch (e) {
       debugPrint('[BluetoothLinkBridge] unreadable payload: $rawPayload ($e)');
       ScaffoldMessenger.of(context).showSnackBar(
