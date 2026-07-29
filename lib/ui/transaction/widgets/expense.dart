@@ -280,7 +280,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
 
       final encoded = base64Url.encode(utf8.encode(jsonPayload));
-      final link = 'zplit://tx/v1?d=$encoded';
+      final link = 'https://zplit.aossie.org/tx?d=$encoded';
 
       if (!mounted) return;
 
@@ -298,6 +298,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             sentViaBluetooth: sentViaBluetooth,
             bluetoothEndpointId: bluetoothEndpointId,
             bluetoothJsonPayload: sentViaBluetooth ? jsonPayload : null,
+            nfcJsonPayload: jsonPayload,
           ),
         ),
       );

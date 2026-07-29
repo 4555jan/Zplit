@@ -24,9 +24,25 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
        _transactionRepository = transactionRepository,
        super(DeepLinkInitial()) {
     on<DeepLinkReceived>(_onDeepLinkReceived);
-    on<BluetoothInviteReceived>(_onBluetoothInviteReceived);
-    on<BluetoothAckReceived>(_onBluetoothAckReceived);
-    on<BluetoothTransactionReceived>(_onBluetoothTransactionReceived); // NEW
+
+    on<BluetoothInviteReceived>(
+      (e, emit) => _handleInvitePayload(e.jsonPayload, emit),
+    );
+    on<BluetoothAckReceived>(
+      (e, emit) => _handleAckPayload(e.jsonPayload, emit),
+    );
+    on<BluetoothTransactionReceived>(
+      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit),
+    );
+
+    // NFC — identical payload shapes, same handling as Bluetooth.
+    on<NfcInviteReceived>(
+      (e, emit) => _handleInvitePayload(e.jsonPayload, emit),
+    );
+    on<NfcAckReceived>((e, emit) => _handleAckPayload(e.jsonPayload, emit));
+    on<NfcTransactionReceived>(
+      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit),
+    );
   }
 
   Future<void> _onDeepLinkReceived(
@@ -36,38 +52,41 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     emit(DeepLinkLoading());
     try {
       final uri = event.uri;
+      final route = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
 
-      if (uri.host == 'invite') {
+      if (route == 'invite') {
         await _handleInvite(uri, emit);
-      } else if (uri.host == 'tx') {
+      } else if (route == 'tx') {
         await _handleTransaction(uri, emit);
       } else {
-        emit(DeepLinkError('Unknown route: ${uri.host}'));
+        emit(DeepLinkError('Unknown route: $route'));
       }
     } catch (e) {
       emit(DeepLinkError(e.toString()));
     }
   }
 
-  Future<void> _onBluetoothInviteReceived(
-    BluetoothInviteReceived event,
+  // ── Shared payload handlers (Bluetooth + NFC both funnel through these) ──
+
+  Future<void> _handleInvitePayload(
+    String jsonPayload,
     Emitter<DeepLinkState> emit,
   ) async {
     emit(DeepLinkLoading());
     try {
-      final json = jsonDecode(event.jsonPayload) as Map<String, dynamic>;
+      final json = jsonDecode(jsonPayload) as Map<String, dynamic>;
       await _upsertFromInviteJson(json, emit);
     } catch (e) {
       emit(DeepLinkError(e.toString()));
     }
   }
 
-  Future<void> _onBluetoothAckReceived(
-    BluetoothAckReceived event,
+  Future<void> _handleAckPayload(
+    String jsonPayload,
     Emitter<DeepLinkState> emit,
   ) async {
     try {
-      final json = jsonDecode(event.jsonPayload) as Map<String, dynamic>;
+      final json = jsonDecode(jsonPayload) as Map<String, dynamic>;
       final txnId = json['id'] as String? ?? '';
       final outcome = json['outcome'] as String? ?? '';
 
@@ -87,13 +106,13 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     }
   }
 
-  Future<void> _onBluetoothTransactionReceived(
-    BluetoothTransactionReceived event,
+  Future<void> _handleTransactionPayload(
+    String jsonPayload,
     Emitter<DeepLinkState> emit,
   ) async {
     emit(DeepLinkLoading());
     try {
-      final encoded = base64Url.encode(utf8.encode(event.jsonPayload));
+      final encoded = base64Url.encode(utf8.encode(jsonPayload));
       final fakeUri = Uri.parse('zplit://tx?d=$encoded');
       await _handleTransaction(fakeUri, emit);
     } catch (e) {

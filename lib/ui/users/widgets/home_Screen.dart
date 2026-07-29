@@ -20,6 +20,9 @@ import 'package:zplit/ui/users/view_model/user_state.dart';
 import 'package:zplit/ui/users/widgets/Homebottomnav.dart';
 import 'package:zplit/ui/transaction/widgets/balance_card.dart';
 import 'package:zplit/ui/users/widgets/friendlist.dart';
+import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart'; // NFC
+import 'package:zplit/ui/nfc/view_model/nfc_event.dart'; // NFC
+import 'package:zplit/ui/nfc/view_model/nfc_state.dart'; // NFC
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -215,6 +218,9 @@ class _HomeScreenState extends State<HomeScreen>
             }
           },
         ),
+        // NFC handling now lives entirely in NfcLinkBridge (wrapped
+        // around the app in main.dart), which mirrors BluetoothLinkBridge.
+        // Nothing NFC-specific needs to happen at the screen level anymore.
       ],
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -279,6 +285,35 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           Row(
             children: [
+              // Tap to listen for an incoming NFC transfer (invite or
+              // transaction) without going through InviteFriendsScreen
+              // first. Shows a spinner in place of the icon while
+              // waiting for a tap. The received payload is picked up
+              // by NfcLinkBridge, not handled here.
+              BlocBuilder<NfcBloc, NfcState>(
+                builder: (context, nfcState) {
+                  return IconButton(
+                    onPressed: nfcState.isBusy
+                        ? null
+                        : () =>
+                              context.read<NfcBloc>().add(NfcStartListening()),
+                    icon: nfcState.isBusy
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : Icon(
+                            Icons.nfc_rounded,
+                            color: theme.colorScheme.onSurface,
+                            size: 26,
+                          ),
+                  );
+                },
+              ),
               IconButton(
                 onPressed: () =>
                     Navigator.pushNamed(context, AppRoutes.qrScanner),
