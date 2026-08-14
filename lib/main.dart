@@ -17,7 +17,10 @@ import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/core/theme/app_theme.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
-import 'package:zplit/ui/nfc/nfc_link_bridge.dart'; // NEW
+import 'package:zplit/ui/nfc/nfc_link_bridge.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+
+import 'package:zplit/ui/wifi/wifi_link_bridge.dart';
 
 class AppBlocObserver extends BlocObserver {
   @override
@@ -90,6 +93,7 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (_) => BluetoothBloc()),
         BlocProvider(create: (_) => NfcBloc()),
+        BlocProvider(create: (_) => WifiBloc()),
       ],
       child: MaterialApp(
         title: 'Zplit',
@@ -102,7 +106,9 @@ class MyApp extends StatelessWidget {
         initialRoute: AppRoutes.splash,
         builder: (context, child) {
           return AppLinkListener(
-            child: BluetoothLinkBridge(child: NfcLinkBridge(child: child!)),
+            child: BluetoothLinkBridge(
+              child: NfcLinkBridge(child: WifiLinkBridge(child: child!)),
+            ),
           );
         },
       ),

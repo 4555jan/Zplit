@@ -23,6 +23,8 @@ import 'package:zplit/ui/users/widgets/friendlist.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart'; // NFC
 import 'package:zplit/ui/nfc/view_model/nfc_event.dart'; // NFC
 import 'package:zplit/ui/nfc/view_model/nfc_state.dart'; // NFC
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,16 +61,55 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  void _sendAck(BuildContext context, String txnId, String outcome) {
-    final endpointId = context
-        .read<BluetoothBloc>()
-        .state
-        .lastReceivedFromEndpointId;
-    if (endpointId == null) return;
+  /// Routes the accept/reject response back over whichever transport
+  /// the transaction originally arrived on.
+  ///
+  /// - Bluetooth: persistent connection, sends automatically.
+  /// - WiFi Direct: also a persistent connection while enabled,
+  ///   sends automatically the same way.
+  /// - NFC: no persistent connection — there's nothing to send to
+  ///   automatically, so the user is prompted to tap again.
+  /// - null (QR / deep link): no reply channel at all; sender will
+  ///   need to check back some other way.
+  void _sendAck(
+    BuildContext context,
+    String txnId,
+    String outcome,
+    String? viaTransport,
+  ) {
     final payload = jsonEncode({'id': txnId, 'outcome': outcome});
-    context.read<BluetoothBloc>().add(
-      BluetoothSendPayload(endpointId, payload),
-    );
+
+    switch (viaTransport) {
+      case 'bluetooth':
+        final endpointId = context
+            .read<BluetoothBloc>()
+            .state
+            .lastReceivedFromEndpointId;
+        if (endpointId == null) return;
+        context.read<BluetoothBloc>().add(
+          BluetoothSendPayload(endpointId, payload),
+        );
+        break;
+
+      case 'wifi':
+        context.read<WifiBloc>().add(WifiSendPayload(payload));
+        break;
+
+      case 'nfc':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Response saved locally — tap phones together again to '
+              'let them know',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        break;
+
+      default:
+        break;
+    }
   }
 
   void _showAcceptRejectSheet(BuildContext context, TransactionReceived state) {
@@ -112,7 +153,12 @@ class _HomeScreenState extends State<HomeScreen>
                     child: OutlinedButton(
                       onPressed: () {
                         transactionBloc.add(RejectTransaction(state.txnId));
-                        _sendAck(context, state.txnId, 'rejected'); // CHANGED
+                        _sendAck(
+                          context,
+                          state.txnId,
+                          'rejected',
+                          state.viaTransport,
+                        ); // CHANGED
                         navigator.pop();
                       },
                       style: OutlinedButton.styleFrom(
@@ -132,7 +178,12 @@ class _HomeScreenState extends State<HomeScreen>
                         transactionBloc.add(
                           AcceptTransaction(transactionId: state.txnId),
                         );
-                        _sendAck(context, state.txnId, 'accepted'); // CHANGED
+                        _sendAck(
+                          context,
+                          state.txnId,
+                          'accepted',
+                          state.viaTransport,
+                        ); // CHANGED
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
@@ -218,9 +269,11 @@ class _HomeScreenState extends State<HomeScreen>
             }
           },
         ),
-        // NFC handling now lives entirely in NfcLinkBridge (wrapped
-        // around the app in main.dart), which mirrors BluetoothLinkBridge.
-        // Nothing NFC-specific needs to happen at the screen level anymore.
+        // NFC / WiFi Direct payload handling lives entirely in their
+        // respective LinkBridge widgets (wrapped around the app in
+        // main.dart), which mirror BluetoothLinkBridge. Nothing
+        // transport-specific needs to happen at the screen level for
+        // receiving — only for sending acks back out, in _sendAck.
       ],
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,

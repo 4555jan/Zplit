@@ -32,7 +32,8 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       (e, emit) => _handleAckPayload(e.jsonPayload, emit),
     );
     on<BluetoothTransactionReceived>(
-      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit),
+      (e, emit) =>
+          _handleTransactionPayload(e.jsonPayload, emit, via: 'bluetooth'),
     );
 
     // NFC — identical payload shapes, same handling as Bluetooth.
@@ -41,7 +42,15 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     );
     on<NfcAckReceived>((e, emit) => _handleAckPayload(e.jsonPayload, emit));
     on<NfcTransactionReceived>(
-      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit),
+      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit, via: 'nfc'),
+    );
+
+    on<WifiInviteReceived>(
+      (e, emit) => _handleInvitePayload(e.jsonPayload, emit),
+    );
+    on<WifiAckReceived>((e, emit) => _handleAckPayload(e.jsonPayload, emit));
+    on<WifiTransactionReceived>(
+      (e, emit) => _handleTransactionPayload(e.jsonPayload, emit, via: 'wifi'),
     );
   }
 
@@ -66,7 +75,8 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     }
   }
 
-  // ── Shared payload handlers (Bluetooth + NFC both funnel through these) ──
+  // ── Shared payload handlers (Bluetooth + NFC + WiFi all funnel
+  // through these) ──
 
   Future<void> _handleInvitePayload(
     String jsonPayload,
@@ -108,13 +118,14 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
 
   Future<void> _handleTransactionPayload(
     String jsonPayload,
-    Emitter<DeepLinkState> emit,
-  ) async {
+    Emitter<DeepLinkState> emit, {
+    String? via,
+  }) async {
     emit(DeepLinkLoading());
     try {
       final encoded = base64Url.encode(utf8.encode(jsonPayload));
       final fakeUri = Uri.parse('zplit://tx?d=$encoded');
-      await _handleTransaction(fakeUri, emit);
+      await _handleTransaction(fakeUri, emit, via: via);
     } catch (e) {
       emit(DeepLinkError(e.toString()));
     }
@@ -195,7 +206,11 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     emit(InviteHandled(name));
   }
 
-  Future<void> _handleTransaction(Uri uri, Emitter<DeepLinkState> emit) async {
+  Future<void> _handleTransaction(
+    Uri uri,
+    Emitter<DeepLinkState> emit, {
+    String? via,
+  }) async {
     final tx = DeepLinkService.parseAndVerify(uri);
 
     if (tx == null) {
@@ -243,6 +258,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
         amount: tx.amount,
         desc: tx.description,
         tag: tx.tag,
+        viaTransport: via,
       ),
     );
   }

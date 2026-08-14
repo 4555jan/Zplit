@@ -14,6 +14,9 @@ import 'package:zplit/ui/users/view_model/user_state.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_event.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_state.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_state.dart';
 
 class InviteFriendsScreen extends StatefulWidget {
   final String userId;
@@ -153,6 +156,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               _buildProximitySection(theme),
               const SizedBox(height: 24),
               _buildNfcSection(theme),
+              const SizedBox(height: 24),
+              _buildWifiSection(theme),
             ],
           ),
         ),
@@ -613,7 +618,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     });
   }
 
-  // ── NFC section — now backed by NfcBloc instead of a local bool ──
+  // ── NFC section — backed by NfcBloc ──
 
   Widget _buildNfcSection(ThemeData theme) {
     return BlocConsumer<NfcBloc, NfcState>(
@@ -700,6 +705,122 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  // ── WiFi Direct section — host/client roles handled invisibly under
+  // the hood by WifiDirectTransportService's scan-then-host heuristic;
+  // same one-toggle UX as Bluetooth/NFC, per project decision. ──
+
+  Widget _buildWifiSection(ThemeData theme) {
+    return BlocConsumer<WifiBloc, WifiState>(
+      listenWhen: (prev, curr) =>
+          prev.errorMessage != curr.errorMessage && curr.errorMessage != null,
+      listener: (context, state) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.errorMessage!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        context.read<WifiBloc>().add(WifiReset());
+      },
+      builder: (context, wifiState) {
+        return _buildToggleSection(
+          theme,
+          title: 'WiFi Direct',
+          value: wifiState.enabled,
+          onChanged: (val) =>
+              context.read<WifiBloc>().add(WifiToggled(val, widget.name)),
+          child: !wifiState.enabled
+              ? (wifiState!.permissionDenied
+                    ? _buildDisabledHint(
+                        theme,
+                        'WiFi Direct & nearby-device permissions are '
+                        'required. Enable them in system settings.',
+                      )
+                    : _buildDisabledHint(
+                        theme,
+                        'Enable WiFi Direct for faster nearby sharing.',
+                      ))
+              : _buildWifiContent(theme, wifiState),
+        );
+      },
+    );
+  }
+
+  Widget _buildWifiContent(ThemeData theme, WifiState wifiState) {
+    final colors = theme.colorScheme;
+    return Column(
+      children: [
+        Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colors.primary,
+          ),
+          child: wifiState.isSearching
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                )
+              : Icon(
+                  wifiState.isConnected
+                      ? Icons.wifi_rounded
+                      : Icons.wifi_find_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          wifiState.isSearching
+              ? 'Looking for nearby Zplit users...'
+              : wifiState.isConnected
+              ? 'Connected to ${wifiState.peerName ?? "a nearby device"}'
+              : 'Waiting to connect...',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        if (wifiState.isConnected) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 200,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                context.read<WifiBloc>().add(
+                  WifiSendPayload(_inviteJsonPayload),
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Invite sent to ${wifiState.peerName ?? "device"} via WiFi',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.send_rounded, size: 18),
+              label: const Text('Send Invite'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
