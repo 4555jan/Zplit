@@ -7,6 +7,8 @@ import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_event.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_state.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
 
 class TransactionSentScreen extends StatefulWidget {
   final String friendName;
@@ -26,6 +28,12 @@ class TransactionSentScreen extends StatefulWidget {
   // user explicitly taps the button here and holds devices together.
   final String? nfcJsonPayload;
 
+  // WiFi Direct behaves like Bluetooth — a persistent connection that
+  // survives navigating to this screen, so it gets the same
+  // "sent + resend" status card treatment.
+  final bool sentViaWifi;
+  final String? wifiJsonPayload;
+
   const TransactionSentScreen({
     super.key,
     required this.friendName,
@@ -39,6 +47,8 @@ class TransactionSentScreen extends StatefulWidget {
     this.bluetoothEndpointId,
     this.bluetoothJsonPayload,
     this.nfcJsonPayload,
+    this.sentViaWifi = false,
+    this.wifiJsonPayload,
   });
 
   @override
@@ -48,6 +58,7 @@ class TransactionSentScreen extends StatefulWidget {
 class _TransactionSentScreenState extends State<TransactionSentScreen> {
   bool _resent = false;
   bool _nfcSentOnce = false;
+  bool _wifiResent = false;
 
   void _resendViaBluetooth() {
     if (widget.bluetoothEndpointId == null ||
@@ -72,6 +83,18 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
   void _sendViaNfc() {
     if (widget.nfcJsonPayload == null) return;
     context.read<NfcBloc>().add(NfcSendPayload(widget.nfcJsonPayload!));
+  }
+
+  void _resendViaWifi() {
+    if (widget.wifiJsonPayload == null) return;
+    context.read<WifiBloc>().add(WifiSendPayload(widget.wifiJsonPayload!));
+    setState(() => _wifiResent = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Resent to ${widget.friendName} via WiFi'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -165,8 +188,15 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                 _buildBluetoothStatusCard(theme, colors),
               ],
 
+              // Persistent WiFi-sent status card — same pattern as
+              // Bluetooth since both keep a live connection open.
+              if (widget.sentViaWifi) ...[
+                const SizedBox(height: 12),
+                _buildWifiStatusCard(theme, colors),
+              ],
+
               // NFC send card — always offered when a payload is
-              // available, regardless of whether Bluetooth already
+              // available, regardless of whether Bluetooth/WiFi already
               // sent it, since NFC requires its own explicit tap.
               if (widget.nfcJsonPayload != null) ...[
                 const SizedBox(height: 12),
@@ -245,7 +275,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
               const SizedBox(height: 28),
 
               Text(
-                widget.sentViaBluetooth
+                (widget.sentViaBluetooth || widget.sentViaWifi)
                     ? 'Or share as backup'
                     : 'Scan to receive',
                 style: theme.textTheme.labelMedium?.copyWith(
@@ -363,6 +393,52 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
           if (widget.bluetoothEndpointId != null)
             TextButton(
               onPressed: _resendViaBluetooth,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Resend',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWifiStatusCard(ThemeData theme, ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.primary.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_rounded, color: colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _wifiResent
+                  ? 'Resent to ${widget.friendName} via WiFi'
+                  : 'Sent to ${widget.friendName} via WiFi',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (widget.wifiJsonPayload != null)
+            TextButton(
+              onPressed: _resendViaWifi,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 0),
