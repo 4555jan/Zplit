@@ -2,42 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_p2p_connection/flutter_p2p_connection.dart';
 
-/// Wraps flutter_p2p_connection's host/client split into a single
-/// Bluetooth-shaped API. The plugin has no built-in "auto-decide who
-/// hosts" behaviour, so this class fakes it with a scan-first,
-/// host-as-fallback heuristic: each device briefly scans for an
-/// existing Zplit host; if it finds one it joins as a client, if not
-/// it becomes the host itself.
-///
-/// NOTE: flutter_p2p_connection's BLE scan (FlutterP2pClient.startScan)
-/// is already scoped to devices running this same plugin's hosts via
-/// its own internal/default BLE service UUID — it does NOT return
-/// arbitrary nearby Bluetooth devices. `BleDiscoveredDevice.deviceName`
-/// is just the peer phone's real Bluetooth device name (e.g. "Sourav's
-/// Galaxy S21"), not anything app-controlled. There is no way to set a
-/// custom advertised name via createGroup(), so we do NOT filter scan
-/// results by name — any device returned by startScan() is already a
-/// valid Zplit host to connect to.
-///
-/// NOTE 2: there is deliberately NO background "glare correction"
-/// re-scan on the host side. The plugin's native Android side shares a
-/// single underlying manager instance across the whole app process, so
-/// spinning up a throwaway FlutterP2pClient probe on a timer and
-/// disposing it after each check also tore down THIS host's own BLE
-/// advertising and hotspot as a side effect — the host would silently
-/// restart every ~10s and never stay connectable long enough for a
-/// peer to actually find and connect to it. The initial scan-then-host
-/// jitter below (3-4s) is enough to avoid both devices becoming hosts
-/// simultaneously in the common 1-to-1 pairing case.
-///
-/// NOTE 3: on the client side, WifiConnected is emitted as soon as
-/// connectWithDevice() succeeds, NOT when streamHotspotState() reports
-/// isActive: true. In practice that state stream can be slow or fail
-/// to fire its first update reliably, leaving the UI stuck on
-/// "searching" even though the connection (and data transfer) is
-/// already working underneath. streamReceivedTexts() firing is also
-/// treated as proof of connection, as a second safety net.
-const String kZplitWifiServiceName = 'ZplitWifiDirect'; // kept for logging only
+const String kZplitWifiServiceName = 'ZplitWifiDirect';
 
 sealed class ZplitWifiEvent {}
 
