@@ -9,8 +9,8 @@ import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/balance/view_model/balance_event.dart';
 import 'package:zplit/ui/balance/view_model/balance_state.dart';
-import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart'; // CHANGED
-import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart'; // CHANGED
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
@@ -20,9 +20,9 @@ import 'package:zplit/ui/users/view_model/user_state.dart';
 import 'package:zplit/ui/users/widgets/Homebottomnav.dart';
 import 'package:zplit/ui/transaction/widgets/balance_card.dart';
 import 'package:zplit/ui/users/widgets/friendlist.dart';
-import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart'; // NFC
-import 'package:zplit/ui/nfc/view_model/nfc_event.dart'; // NFC
-import 'package:zplit/ui/nfc/view_model/nfc_state.dart'; // NFC
+import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
+import 'package:zplit/ui/nfc/view_model/nfc_event.dart';
+import 'package:zplit/ui/nfc/view_model/nfc_state.dart';
 import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
 import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
 
@@ -61,16 +61,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  /// Routes the accept/reject response back over whichever transport
-  /// the transaction originally arrived on.
-  ///
-  /// - Bluetooth: persistent connection, sends automatically.
-  /// - WiFi Direct: also a persistent connection while enabled,
-  ///   sends automatically the same way.
-  /// - NFC: no persistent connection — there's nothing to send to
-  ///   automatically, so the user is prompted to tap again.
-  /// - null (QR / deep link): no reply channel at all; sender will
-  ///   need to check back some other way.
   void _sendAck(
     BuildContext context,
     String txnId,
@@ -269,11 +259,6 @@ class _HomeScreenState extends State<HomeScreen>
             }
           },
         ),
-        // NFC / WiFi Direct payload handling lives entirely in their
-        // respective LinkBridge widgets (wrapped around the app in
-        // main.dart), which mirror BluetoothLinkBridge. Nothing
-        // transport-specific needs to happen at the screen level for
-        // receiving — only for sending acks back out, in _sendAck.
       ],
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -338,11 +323,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           Row(
             children: [
-              // Tap to listen for an incoming NFC transfer (invite or
-              // transaction) without going through InviteFriendsScreen
-              // first. Shows a spinner in place of the icon while
-              // waiting for a tap. The received payload is picked up
-              // by NfcLinkBridge, not handled here.
               BlocBuilder<NfcBloc, NfcState>(
                 builder: (context, nfcState) {
                   return IconButton(

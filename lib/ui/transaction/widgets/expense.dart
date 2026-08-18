@@ -196,18 +196,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return null;
   }
 
-  // WiFi Direct is a single 1-to-1 link (unlike Bluetooth, which can
-  // track multiple nearby endpoints at once), so "is this friend the
-  // one we're connected to over WiFi" is just: are we connected at
-  // all, and does the connected peer's reported name match this
-  // friend? Falls back to true-if-connected when peerName is missing
-  // (e.g. host side before the plugin surfaces a username), since in
-  // practice a WiFi Direct session here is always with one specific
-  // nearby friend at a time.
+  // WiFi Direct here is a single 1-to-1 link (unlike Bluetooth, which
+  // tracks multiple nearby endpoints at once). WifiState.peerName is
+  // NOT the friend's app display name — on the client side it's
+  // currently always the literal string 'Host' (see
+  // WifiDirectTransportService._becomeClient), and on the host side
+  // it's the peer's raw device model name (e.g. 'SM-E146B'), not
+  // their Zplit display name. Matching peerName against
+  // friendDisplayName therefore fails on every real send. Since
+  // there's only ever one possible peer in this flow, being connected
+  // at all is sufficient signal that we're talking to the selected
+  // friend.
   bool _isWifiConnectedToFriend(WifiState wifiState, String friendDisplayName) {
-    if (!wifiState.isConnected) return false;
-    if (wifiState.peerName == null) return true;
-    return wifiState.peerName == friendDisplayName;
+    return wifiState.isConnected;
   }
 
   Future<void> _sendExpense() async {
