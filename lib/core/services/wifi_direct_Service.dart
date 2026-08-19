@@ -2,7 +2,42 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_p2p_connection/flutter_p2p_connection.dart';
 
-const String kZplitWifiServiceName = 'ZplitWifiDirect';
+/// Wraps flutter_p2p_connection's host/client split into a single
+/// Bluetooth-shaped API. The plugin has no built-in "auto-decide who
+/// hosts" behaviour, so this class fakes it with a scan-first,
+/// host-as-fallback heuristic: each device briefly scans for an
+/// existing Zplit host; if it finds one it joins as a client, if not
+/// it becomes the host itself.
+///
+/// NOTE: flutter_p2p_connection's BLE scan (FlutterP2pClient.startScan)
+/// is already scoped to devices running this same plugin's hosts via
+/// its own internal/default BLE service UUID — it does NOT return
+/// arbitrary nearby Bluetooth devices. `BleDiscoveredDevice.deviceName`
+/// is just the peer phone's real Bluetooth device name (e.g. "Sourav's
+/// Galaxy S21"), not anything app-controlled. There is no way to set a
+/// custom advertised name via createGroup(), so we do NOT filter scan
+/// results by name — any device returned by startScan() is already a
+/// valid Zplit host to connect to.
+///
+/// NOTE 2: there is deliberately NO background "glare correction"
+/// re-scan on the host side. The plugin's native Android side shares a
+/// single underlying manager instance across the whole app process, so
+/// spinning up a throwaway FlutterP2pClient probe on a timer and
+/// disposing it after each check also tore down THIS host's own BLE
+/// advertising and hotspot as a side effect — the host would silently
+/// restart every ~10s and never stay connectable long enough for a
+/// peer to actually find and connect to it. The initial scan-then-host
+/// jitter below (3-4s) is enough to avoid both devices becoming hosts
+/// simultaneously in the common 1-to-1 pairing case.
+///
+/// NOTE 3: on the client side, WifiConnected is emitted as soon as
+/// connectWithDevice() succeeds, NOT when streamHotspotState() reports
+/// isActive: true. In practice that state stream can be slow or fail
+/// to fire its first update reliably, leaving the UI stuck on
+/// "searching" even though the connection (and data transfer) is
+/// already working underneath. streamReceivedTexts() firing is also
+/// treated as proof of connection, as a second safety net.
+const String kZplitWifiServiceName = 'ZplitWifiDirect'; // kept for logging only
 
 sealed class ZplitWifiEvent {}
 
@@ -46,6 +81,9 @@ class WifiDirectTransportService {
   StreamSubscription? _clientListSub;
   StreamSubscription? _receivedTextSub;
 
+  /// Checks and requests everything the plugin needs. Call before
+  /// enable() so the caller can surface a clean "permission denied"
+  /// state rather than a silent failure deep in the scan/host logic.
   Future<bool> ensurePermissions() async {
     final probe = FlutterP2pHost();
     if (!await probe.checkStoragePermission()) {
@@ -86,7 +124,7 @@ class WifiDirectTransportService {
     await client.initialize();
     _client = client;
 
-    final jitterMs = 3000 + Random().nextInt(1000);
+    final jitterMs = 3000 + Random().nextInt(1000); // 3.0-4.0s
     BleDiscoveredDevice? found;
 
     final completer = Completer<void>();
@@ -96,6 +134,9 @@ class WifiDirectTransportService {
           '[WiFiDirect] discovered: "${d.deviceName}" (${d.deviceAddress})',
         );
       }
+      // startScan() is already scoped to flutter_p2p_connection hosts
+      // via the plugin's BLE service — anything returned here is a
+      // valid Zplit host. No name filtering (see class doc comment).
       if (devices.isNotEmpty && !completer.isCompleted) {
         found = devices.first;
         completer.complete();
@@ -131,12 +172,19 @@ class WifiDirectTransportService {
       return;
     }
 
+    // connectWithDevice() completing without throwing IS the connection
+    // signal — don't wait on streamHotspotState() to separately confirm
+    // isActive, since that stream can be slow or fail to fire its first
+    // update reliably. Emit WifiConnected right away.
     if (_connectedPeerId == null) {
       _connectedPeerId = 'host';
       _controller.add(WifiConnected('host', 'Host'));
     }
 
     _hotspotStateSub = client.streamHotspotState().listen((state) {
+      // From here on, only use this stream to detect disconnection —
+      // the initial "connected" signal already came from
+      // connectWithDevice() succeeding above.
       if (!state.isActive && _connectedPeerId != null) {
         final id = _connectedPeerId!;
         _connectedPeerId = null;
@@ -145,10 +193,13 @@ class WifiDirectTransportService {
     });
 
     _receivedTextSub = client.streamReceivedTexts().listen((text) {
+      // Belt-and-suspenders: receiving any payload is undeniable proof
+      // we're connected, even if the state stream above was flaky.
       if (_connectedPeerId == null) {
         _connectedPeerId = 'host';
         _controller.add(WifiConnected('host', 'Host'));
       }
+      // The client always has exactly one peer — the host.
       _controller.add(WifiPayloadReceived('host', text));
     });
   }
@@ -159,22 +210,7 @@ class WifiDirectTransportService {
     await host.initialize();
     _host = host;
 
-    // host.createGroup() has occasionally been observed to throw a raw
-    // "Bad state: No element" exception — an internal race in the
-    // plugin between its own hotspot-state wait logic and the native
-    // hotspot actually starting. Left unhandled, this crashes the
-    // whole WifiBloc (visible as an unhandled exception + onError in
-    // the bloc observer). The native hotspot typically comes up
-    // moments later regardless, so we surface this as a normal
-    // WifiConnectionError instead of letting it propagate.
-    HotspotHostState state;
-    try {
-      state = await host.createGroup(advertise: true);
-    } catch (e) {
-      _controller.add(WifiConnectionError('Could not create group: $e'));
-      return;
-    }
-
+    final state = await host.createGroup(advertise: true);
     if (state.failureReason != null) {
       _controller.add(
         WifiConnectionError('Could not create group: ${state.failureReason}'),
@@ -195,8 +231,15 @@ class WifiDirectTransportService {
     });
 
     _receivedTextSub = host.streamReceivedTexts().listen((text) {
+      // streamReceivedTexts() on the host doesn't carry a sender id.
+      // Fine for the 1-to-1 case this app targets — best-effort
+      // attribution to whichever peer is currently connected.
       _controller.add(WifiPayloadReceived(_connectedPeerId ?? 'client', text));
     });
+
+    // No background re-scan here — see NOTE 2 above. The host just
+    // stays up and advertising, waiting for streamClientList() to
+    // report a connected peer.
   }
 
   Future<void> sendPayload(String jsonPayload) async {
