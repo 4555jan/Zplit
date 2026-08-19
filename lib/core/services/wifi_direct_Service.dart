@@ -250,6 +250,14 @@ class WifiDirectTransportService {
       final ok = await _host!.sendTextToClient(jsonPayload, _connectedPeerId!);
       if (!ok) throw StateError('Send failed');
     } else {
+      if (_client == null) {
+        throw StateError('No client connection to send over');
+      }
+      // broadcastText returns void — the plugin gives no success/failure
+      // signal on the client side. A thrown exception (e.g. socket
+      // closed) is the only way this will ever surface a failure to
+      // WifiBloc; a silent no-op send on the plugin's end is
+      // structurally invisible from here.
       await _client!.broadcastText(jsonPayload);
     }
   }
