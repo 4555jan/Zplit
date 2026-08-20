@@ -1,4 +1,4 @@
-import 'dart:convert'; // CHANGED
+import 'dart:convert';
 import 'dart:io';
 import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 
@@ -17,7 +17,6 @@ import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_event.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
-import 'package:zplit/ui/users/widgets/Homebottomnav.dart';
 import 'package:zplit/ui/transaction/widgets/balance_card.dart';
 import 'package:zplit/ui/users/widgets/friendlist.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
@@ -48,8 +47,6 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) setState(() => _myAddress = addr);
     });
 
-    context.read<UserBloc>().add(LoadAllUsers());
-    context.read<BalanceBloc>().add(LoadAllBalances());
     context.read<UserBloc>().add(LoadAllUsers());
     context.read<BalanceBloc>().add(LoadAllBalances());
     context.read<TransactionBloc>().add(LoadAllTransactions());
@@ -507,49 +504,56 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildEmptyState(String? userPublicKey) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: 200,
-            child: Image.asset(
-              'assets/images/homescreen.png',
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.receipt_long_outlined,
-                size: 100,
-                color: colors.primary.withOpacity(0.25),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 200,
+              child: Image.asset(
+                'assets/images/homescreen.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.receipt_long_outlined,
+                  size: 100,
+                  color: colors.primary.withOpacity(0.25),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No Expenses Found',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.55),
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 20),
+            Text(
+              'No Expenses Found',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.55),
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(height: 28),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.addExpense);
-            },
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text(
-              'Add An Expense',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.addExpense);
+              },
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text(
+                'Add An Expense',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
+                shape: const StadiumBorder(),
+                elevation: 0,
+              ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              shape: const StadiumBorder(),
-              elevation: 0,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
