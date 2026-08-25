@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -13,6 +14,7 @@ import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 import 'package:zplit/ui/transaction/widgets/TransactionSentscreen.dart';
+import 'package:zplit/ui/transaction/widgets/receipt_scan_screen.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
 import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
@@ -37,6 +39,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String? _selectedFriendPublicKey;
   String? _selectedFriendName;
   bool _isSending = false;
+
+  // Receipt attached via OCR scan (Week 13). Purely additive — if
+  // null, the flow behaves exactly as before.
+  String? _receiptImagePath;
 
   final List<String> _categories = [
     'Grocery',
@@ -88,6 +94,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       'Dec',
     ];
     return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
+  }
+
+  // ── Receipt scan (Week 13 — OCR) ──
+
+  Future<void> _openReceiptScan() async {
+    final result = await Navigator.push<ReceiptScanOutcome>(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptScanScreen()),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _receiptImagePath = result.imagePath;
+      if (result.amount != null) {
+        _amountController.text = result.amount!.toStringAsFixed(2);
+      }
+      if (result.date != null) {
+        _selectedDate = result.date;
+      }
+      if (result.merchantName != null &&
+          _paidForController.text.trim().isEmpty) {
+        _paidForController.text = result.merchantName!;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Receipt scanned — review the pre-filled details'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _openFriendPicker() {
@@ -384,7 +421,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 color: colors.primary,
                 size: 24,
               ),
-              onPressed: () {},
+              onPressed: _openReceiptScan,
             ),
           ],
         ),
@@ -642,6 +679,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
 
+              if (_receiptImagePath != null) ...[
+                const SizedBox(height: 20),
+                _buildLabel(theme, 'Receipt'),
+                const SizedBox(height: 8),
+                _buildReceiptThumbnail(theme, colors),
+              ],
+
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -679,6 +723,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReceiptThumbnail(ThemeData theme, ColorScheme colors) {
+    return Stack(
+      children: [
+        Container(
+          height: 100,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.dividerColor),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.file(File(_receiptImagePath!), fit: BoxFit.cover),
+        ),
+        Positioned(
+          top: 6,
+          right: 6,
+          child: GestureDetector(
+            onTap: () => setState(() => _receiptImagePath = null),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
