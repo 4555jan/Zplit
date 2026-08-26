@@ -1,12 +1,6 @@
 // lib/core/services/ocr_service.dart
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-/// Result of scanning a receipt image. Any field can be null if it
-/// couldn't be confidently extracted — the caller should treat this
-/// as a best-effort pre-fill, not a guaranteed complete parse, and
-/// let the user review/correct before saving (blurry photos and
-/// partial receipts are expected, not exceptional, per the Week 13
-/// scope).
 class ReceiptScanResult {
   final String? merchantName;
   final double? amount;
@@ -20,9 +14,6 @@ class ReceiptScanResult {
     required this.rawText,
   });
 
-  /// True if we couldn't extract anything useful at all — caller
-  /// should show a "couldn't read this receipt" message rather than
-  /// silently leaving the form untouched.
   bool get isEmpty => merchantName == null && amount == null && date == null;
 }
 
@@ -49,27 +40,11 @@ class OcrService {
     );
   }
 
-  // ── Amount extraction ──
-  //
-  // Strategy: look for lines containing a "total"-type keyword first
-  // (highest confidence), and take the largest currency-shaped number
-  // on that line or the next couple of lines. If no such keyword line
-  // exists, fall back to the largest currency-shaped number anywhere
-  // in the receipt — on a real receipt the grand total is almost
-  // always the largest number present.
   static final _totalKeywords = RegExp(
     r'\b(total|grand\s*total|amount\s*due|balance\s*due|net\s*amount)\b',
     caseSensitive: false,
   );
 
-  // Matches amounts like ₹1,234.56 / Rs 1234 / 1234.56 / $12.34 —
-  // deliberately permissive since receipt OCR output is messy.
-  //
-  // Also tolerates common OCR digit misreads inline (O/o/Q → 0,
-  // l/I/| → 1, S → 5, B → 8, Z → 2) so a single broken character
-  // doesn't fragment the match into a short, wrong substring (e.g.
-  // "1OO.00" previously only matched "00", not the full "1OO.00").
-  // The actual character substitution happens in _parseAmount.
   static final _amountPattern = RegExp(
     r'(?:₹|rs\.?|inr|\$)?\s*'
     r'([0-9OoQlI|SBZ]{1,3}(?:[,.\s][0-9OoQlI|SBZ]{3})*'
@@ -115,9 +90,6 @@ class OcrService {
     return bestFromTotalLine ?? largestOverall;
   }
 
-  // Common OCR digit misreads. Applied only to substrings we've
-  // already identified as number-shaped (via _amountPattern), never
-  // to arbitrary text, so we don't corrupt merchant names elsewhere.
   static final _ocrZero = RegExp(r'[OoQ]');
   static final _ocrOne = RegExp(r'[lI|]');
 
@@ -139,12 +111,6 @@ class OcrService {
     return double.tryParse(cleaned);
   }
 
-  // ── Date extraction ──
-  //
-  // Covers the common formats seen on receipts: DD/MM/YYYY,
-  // DD-MM-YYYY, DD.MM.YYYY (we assume DD/MM ordering since this
-  // targets an INR-currency, India-first use case), and
-  // "DD Mon YYYY" text forms.
   static final _numericDatePattern = RegExp(
     r'\b([0-3]?\d)[/\-.]([01]?\d)[/\-.](\d{2,4})\b',
   );
@@ -211,18 +177,11 @@ class OcrService {
 
   bool _isPlausibleReceiptDate(DateTime date) {
     final now = DateTime.now();
-    // Reject obviously wrong OCR misreads — a receipt shouldn't be
-    // dated more than a day in the future or more than ~5 years old.
+
     return date.isBefore(now.add(const Duration(days: 1))) &&
         date.isAfter(now.subtract(const Duration(days: 365 * 5)));
   }
 
-  // ── Merchant name extraction ──
-  //
-  // Heuristic: the merchant name is almost always one of the first
-  // few non-empty lines, before any address/phone/date/total info
-  // starts appearing. We skip lines that look like addresses, phone
-  // numbers, or pure numbers, and take the first remaining line.
   static final _phonePattern = RegExp(r'[\d\-\+\(\)\s]{7,}');
   static final _addressHints = RegExp(
     r'\b(road|street|st\.|ave|avenue|floor|block|sector|near|opp\.?)\b',
