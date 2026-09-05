@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:zplit/core/database/tables/transactions_table.dart';
 import 'package:zplit/domain/models/transaction/transaction_model.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
 import 'package:zplit/ui/balance/view_model/balance_state.dart';
@@ -26,9 +27,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   String? _myAddress;
 
-  String? _filterFriendPublicKey;
-  String? _filterTag;
-  DateTimeRange? _filterDateRange;
+  // Filters
+  String? _filterFriendPublicKey; // null = all friends
+  String? _filterTag; // null = all tags
+  DateTimeRange? _filterDateRange; // null = all time
 
   static const _categoryColors = [
     Color(0xFF16A34A),
@@ -48,8 +50,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
   }
 
-  bool _isAccepted(TransactionModel t) =>
-      t.status.name.toLowerCase().contains('accept');
+  // A transaction is "accepted" once it's fully signed by both
+  // parties — per TransactionsTable, the real status values are
+  // unsigned / partiallySigned / signed (there is no "accepted"
+  // value). `signed` is the equivalent of "accepted" in this model.
+  bool _isAccepted(TransactionModel t) => t.status == TransactionStatus.signed;
 
   List<TransactionModel> _filteredTransactions(List<TransactionModel> all) {
     final me = _myAddress;
@@ -86,6 +91,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   double _absRupees(TransactionModel t) => t.amount.abs().toDouble() / 100;
 
+  // Signed contribution of a transaction to "my balance with the
+  // counterparty", matching the exact sign rule used in
+  // TransactionRepositoryImpl:
+  //   - amount is defined from the SENDER's frame: positive amount
+  //     means fromUser owes toUser (see acceptTransaction: receiver's
+  //     balance += amount; applyRemoteAck: sender's balance -= amount).
+  //   - so if I'm the sender, my contribution is -amount;
+  //     if I'm the receiver, my contribution is +amount.
+  // Summing this across all transactions with one friend reconstructs
+  // the same running balance BalancesTable.netAmount converges to.
+  double _signedContribution(TransactionModel t) {
+    final me = _myAddress;
+    if (me == null) return 0;
+    final rupees = t.amount.toDouble() / 100;
+    if (t.fromUserPublicKey == me) return -rupees;
+    if (t.toUserPublicKey == me) return rupees;
+    return 0;
+  }
+
+  List<TransactionModel> _sortedChronologically(
+    List<TransactionModel> transactions,
+  ) {
+    final sorted = [...transactions];
+    sorted.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return sorted;
+  }
+
+  List<FlSpot> _balanceTrendSpots(List<TransactionModel> sortedTransactions) {
+    double running = 0;
+    final spots = <FlSpot>[];
+    for (int i = 0; i < sortedTransactions.length; i++) {
+      running += _signedContribution(sortedTransactions[i]);
+      spots.add(FlSpot(i.toDouble(), running));
+    }
+    return spots;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -121,6 +163,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           _buildAmountDisplay(theme, balState),
                           const SizedBox(height: 24),
                           _buildTrendCard(theme, transactions),
+                          const SizedBox(height: 20),
+                          _buildMonthlySpendingBarChart(theme, transactions),
+                          const SizedBox(height: 20),
+                          _buildBalanceTrendCard(theme, transactions),
                           const SizedBox(height: 20),
                           _buildBreakdownCard(theme, transactions),
                         ],
@@ -163,6 +209,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
     );
   }
+
+  // ── Filters ──
 
   Widget _buildFilters(ThemeData theme) {
     final colors = theme.colorScheme;
@@ -408,6 +456,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (picked != null) setState(() => _filterDateRange = picked);
   }
 
+  // ── Owe amount display ──
+
   Widget _buildAmountDisplay(ThemeData theme, BalanceState balState) {
     double owedToMe = 0;
     double iOwe = 0;
@@ -451,6 +501,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
     );
   }
+
+  // ── Trend line chart (aggregate expense trend) ──
 
   Widget _buildTrendCard(ThemeData theme, List<TransactionModel> transactions) {
     final colors = theme.colorScheme;
@@ -605,6 +657,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
+  /// Buckets transaction totals (absolute rupee amounts) into the
+  /// selected period, most recent N buckets, oldest first.
   List<double> _bucketByPeriod(List<TransactionModel> transactions) {
     final now = DateTime.now();
     late int bucketCount;
@@ -715,6 +769,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             const SizedBox(height: 8),
             Text(
               message,
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
@@ -724,6 +779,363 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
     );
   }
+
+  // ── Monthly spending bar chart ──
+  //
+  // Always shows the last 6 calendar months regardless of the
+  // "Your Expenses" period toggle above — this is a distinct,
+  // dedicated view per the Week 14 spec, not another mode of the
+  // same trend chart.
+
+  List<double> _monthlySpendBuckets(
+    List<TransactionModel> transactions, {
+    int months = 6,
+  }) {
+    final now = DateTime.now();
+    final result = List<double>.filled(months, 0);
+    for (final t in transactions) {
+      final monthsAgo =
+          (now.year - t.createdAt.year) * 12 + (now.month - t.createdAt.month);
+      final idx = months - 1 - monthsAgo;
+      if (idx >= 0 && idx < months) {
+        result[idx] += _absRupees(t);
+      }
+    }
+    return result;
+  }
+
+  List<String> _monthlySpendLabels({int months = 6}) {
+    final now = DateTime.now();
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return List.generate(months, (i) {
+      final m = DateTime(now.year, now.month - (months - 1 - i), 1);
+      return monthNames[m.month - 1];
+    });
+  }
+
+  Widget _buildMonthlySpendingBarChart(
+    ThemeData theme,
+    List<TransactionModel> transactions,
+  ) {
+    final colors = theme.colorScheme;
+    final buckets = _monthlySpendBuckets(transactions);
+    final labels = _monthlySpendLabels();
+    final maxVal = buckets.isEmpty
+        ? 0.0
+        : buckets.reduce((a, b) => a > b ? a : b);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Monthly Spending',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (buckets.every((v) => v == 0))
+            _buildEmptyChartState(theme, 'No expenses recorded yet')
+          else
+            SizedBox(
+              height: 180,
+              child: BarChart(
+                BarChartData(
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  maxY: maxVal == 0 ? 10 : maxVal * 1.2,
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 22,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= labels.length) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              labels[i],
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.5,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  barTouchData: BarTouchData(
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                          BarTooltipItem(
+                            '₹${rod.toY.toStringAsFixed(0)}',
+                            theme.textTheme.bodySmall!.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                    ),
+                  ),
+                  barGroups: [
+                    for (int i = 0; i < buckets.length; i++)
+                      BarChartGroupData(
+                        x: i,
+                        barRods: [
+                          BarChartRodData(
+                            toY: buckets[i],
+                            color: colors.primary,
+                            width: 18,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                swapAnimationDuration: const Duration(milliseconds: 400),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Per-person balance trend line chart ──
+  //
+  // Only meaningful once a specific friend is selected via the
+  // filter above — reconstructs the running signed balance with
+  // that friend, transaction by transaction, using the same sign
+  // rule as TransactionRepositoryImpl (see _signedContribution).
+
+  Widget _buildBalanceTrendCard(
+    ThemeData theme,
+    List<TransactionModel> transactions,
+  ) {
+    final colors = theme.colorScheme;
+
+    if (_filterFriendPublicKey == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Balance Trend',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 140,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timeline_outlined,
+                      size: 36,
+                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Select a friend above to see how your\nbalance with them has changed over time',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final friendName = _filterFriendLabel();
+    final sorted = _sortedChronologically(transactions);
+    final spots = _balanceTrendSpots(sorted);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Balance Trend with $friendName',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (spots.isEmpty)
+            _buildEmptyChartState(theme, 'No transactions with $friendName yet')
+          else
+            SizedBox(
+              height: 180,
+              child: LineChart(
+                LineChartData(
+                  gridData: const FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 22,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.round();
+                          if (i < 0 || i >= sorted.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final isFirst = i == 0;
+                          final isLast = i == sorted.length - 1;
+                          final isMiddle =
+                              sorted.length > 2 && i == sorted.length ~/ 2;
+                          if (!isFirst && !isLast && !isMiddle) {
+                            return const SizedBox.shrink();
+                          }
+                          final d = sorted[i].createdAt;
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              '${d.day}/${d.month}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.5,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  extraLinesData: ExtraLinesData(
+                    horizontalLines: [
+                      HorizontalLine(
+                        y: 0,
+                        color: theme.colorScheme.onSurface.withOpacity(0.2),
+                        strokeWidth: 1,
+                        dashArray: [6, 4],
+                      ),
+                    ],
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: spots.last.y >= 0 ? colors.primary : colors.error,
+                      barWidth: 3,
+                      dotData: FlDotData(show: spots.length <= 20),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color:
+                            (spots.last.y >= 0 ? colors.primary : colors.error)
+                                .withOpacity(0.1),
+                      ),
+                    ),
+                  ],
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touched) => touched.map((s) {
+                        final sign = s.y >= 0 ? '+' : '-';
+                        return LineTooltipItem(
+                          '$sign₹${s.y.abs().toStringAsFixed(0)}',
+                          theme.textTheme.bodySmall!.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                duration: const Duration(milliseconds: 400),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Category breakdown donut chart ──
 
   Widget _buildBreakdownCard(
     ThemeData theme,
