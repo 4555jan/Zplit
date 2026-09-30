@@ -4,23 +4,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
-import 'package:zplit/ui/deep_link/view_model/deep_link_event.dart';
+import 'package:zplit/ui/nfc/nfc_link_bridge.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_event.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_state.dart';
-import 'package:zplit/ui/nfc/widgets/nfc_link_bridge.dart';
 
 class MockNfcBloc extends MockBloc<NfcEvent, NfcState> implements NfcBloc {}
 
-class MockDeepLinkBloc extends Mock implements DeepLinkBloc {}
+// Was a plain Mock, which leaves .stream/.state unstubbed — BlocProvider
+// then crashes with "type 'Null' is not a subtype of type
+// 'Stream<DeepLinkState>'" the moment it tries to listen. MockBloc fixes
+// this by giving DeepLinkBloc a real (empty, by default) stream and state.
+class MockDeepLinkBloc extends MockBloc<DeepLinkEvent, DeepLinkState>
+    implements DeepLinkBloc {}
 
 void main() {
   late MockNfcBloc mockNfcBloc;
   late MockDeepLinkBloc mockDeepLinkBloc;
 
   setUpAll(() {
-    // Fallback values so mocktail's any()/captureAny() can match these
-    // event types in when()/verify() calls below.
     registerFallbackValue(NfcReset());
     registerFallbackValue(NfcInviteReceived(''));
   });
@@ -158,8 +160,6 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pump();
 
-    // listenWhen requires curr.payload != prev.payload — an identical
-    // repeated payload should not trigger another handlePayload/reset.
     verifyNever(() => mockNfcBloc.add(any(that: isA<NfcReset>())));
   });
 }
