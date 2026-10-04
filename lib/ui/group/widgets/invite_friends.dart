@@ -67,10 +67,10 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
     final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-    return 'https://zplit.aossie.org/invite?d=$encoded';
+    return 'zplit://invite?d=$encoded';
   }
 
-  String get _displayLink => 'zplit.aossie.org/invite';
+  String get _displayLink => 'zplit://invite';
 
   String get _inviteJsonPayload {
     String? picBase64;
@@ -128,10 +128,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             );
           }
 
-          // the instant any endpoint becomes connected, automatically
-          // send our own profile (name + picture) without waiting for the
-          // user to tap "Send". Both devices run this same logic, so a
-          // single connection syncs profile pictures in both directions.
           state.connectionStatus.forEach((endpointId, status) {
             if (status == BtConnectionStatus.connected &&
                 !_autoSentTo.contains(endpointId)) {
@@ -708,10 +704,6 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       ],
     );
   }
-
-  // ── WiFi Direct section — host/client roles handled invisibly under
-  // the hood by WifiDirectTransportService's scan-then-host heuristic;
-  // same one-toggle UX as Bluetooth/NFC, per project decision. ──
 
   Widget _buildWifiSection(ThemeData theme) {
     return BlocConsumer<WifiBloc, WifiState>(
