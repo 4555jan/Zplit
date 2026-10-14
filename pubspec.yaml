@@ -62,6 +62,9 @@ dev_dependencies:
   drift_dev: ^2.31.0
   build_runner: ^2.15.0
 
+ 
+  bloc_test: ^10.0.0  
+  mocktail: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -107,3 +110,5 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+dependency_overrides:
+  analyzer: ^8.0.0
