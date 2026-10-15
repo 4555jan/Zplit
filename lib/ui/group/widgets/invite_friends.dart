@@ -34,12 +34,20 @@ class InviteFriendsScreen extends StatefulWidget {
 }
 
 class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
+  /// Must exactly match the host in AndroidManifest.xml and the domain
+  /// serving /.well-known/assetlinks.json.
+  static const _inviteHost = 'zplit.aossie.org';
+
   bool _proximityEnabled = false;
   String _proximityFilter = 'Contacts Only';
 
   String? _myProfilePicturePath;
 
   final Set<String> _autoSentTo = {};
+
+  /// Built once on first access so the QR code stays stable across
+  /// rebuilds (the timestamp inside it no longer changes every frame).
+  late final String _inviteDeepLink = _createInviteUrl();
 
   @override
   void initState() {
@@ -59,7 +67,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     }
   }
 
-  String get _inviteDeepLink {
+  String _createInviteUrl() {
     final payload = {
       'id': widget.userId,
       'name': widget.name,
@@ -67,10 +75,10 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
     final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-    return 'zplit://invite?d=$encoded';
+    return 'https://$_inviteHost/invite?d=$encoded';
   }
 
-  String get _displayLink => 'zplit://invite';
+  String get _displayLink => 'https://$_inviteHost/invite';
 
   String get _inviteJsonPayload {
     String? picBase64;
@@ -705,6 +713,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     );
   }
 
+  // ── WiFi Direct section — backed by WifiBloc ──
+
   Widget _buildWifiSection(ThemeData theme) {
     return BlocConsumer<WifiBloc, WifiState>(
       listenWhen: (prev, curr) =>
@@ -726,7 +736,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
           onChanged: (val) =>
               context.read<WifiBloc>().add(WifiToggled(val, widget.name)),
           child: !wifiState.enabled
-              ? (wifiState!.permissionDenied
+              ? (wifiState.permissionDenied
                     ? _buildDisabledHint(
                         theme,
                         'WiFi Direct & nearby-device permissions are '
