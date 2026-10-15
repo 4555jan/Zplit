@@ -14,12 +14,14 @@ class InviteHandled extends DeepLinkState {
 class TransactionReceived extends DeepLinkState {
   final String txnId;
   final String fromUserId;
+  final String fromUserName;
   final double amount;
   final String desc;
   final String? tag;
   TransactionReceived({
     required this.txnId,
     required this.fromUserId,
+    required this.fromUserName,
     required this.amount,
     required this.desc,
     this.tag,

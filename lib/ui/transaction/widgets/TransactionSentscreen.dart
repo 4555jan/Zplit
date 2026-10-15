@@ -55,7 +55,6 @@ class TransactionSentScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
 
-            // ── Success icon ──
             Container(
               width: 80,
               height: 80,
@@ -108,10 +107,11 @@ class TransactionSentScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _summaryRow(theme, 'Split', splitType),
                   const SizedBox(height: 12),
+
                   _summaryRow(
                     theme,
-                    '$friendName owes',
-                    '₹${splitAmount.toStringAsFixed(2)}',
+                    splitAmount >= 0 ? '$friendName owes' : 'You owe',
+                    '₹${splitAmount.abs().toStringAsFixed(2)}',
                     highlight: true,
                     colors: colors,
                   ),
@@ -150,7 +150,6 @@ class TransactionSentScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // ── QR Code — Week 6 ──
             Text(
               'Scan to receive',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -175,7 +174,7 @@ class TransactionSentScreen extends StatelessWidget {
                   eyeShape: QrEyeShape.square,
                   color: colors.primary,
                 ),
-                dataModuleStyle: QrDataModuleStyle(
+                dataModuleStyle: const QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
                   color: Colors.black87,
                 ),
@@ -183,7 +182,7 @@ class TransactionSentScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Let $friendName scan this QR with Zplit',
+              'Let $friendName scan this with Zplit',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -192,7 +191,6 @@ class TransactionSentScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // ── Share button ──
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -211,9 +209,7 @@ class TransactionSentScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -232,7 +228,6 @@ class TransactionSentScreen extends StatelessWidget {
                 child: const Text('Back to Home'),
               ),
             ),
-
             const SizedBox(height: 32),
           ],
         ),

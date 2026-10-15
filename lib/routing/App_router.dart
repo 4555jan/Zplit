@@ -5,12 +5,12 @@ import 'package:zplit/domain/models/user/user_model.dart';
 import 'package:zplit/ui/onboarding/widgets/Account_setup_screen.dart';
 import 'package:zplit/ui/onboarding/widgets/Onboarding_screen.dart';
 import 'package:zplit/ui/onboarding/widgets/Splash_screen.dart';
-import 'package:zplit/ui/users/widgets/analytics_screen.dart';
-import 'package:zplit/ui/users/widgets/expense.dart';
-import 'package:zplit/ui/users/widgets/friends_Detail.dart';
+import 'package:zplit/ui/transaction/widgets/analytics_screen.dart';
+import 'package:zplit/ui/transaction/widgets/expense.dart';
+import 'package:zplit/ui/group/widgets/friends_Detail.dart';
+import 'package:zplit/ui/transaction/widgets/qr_screen.dart';
 import 'package:zplit/ui/users/widgets/home_Screen.dart';
 import 'package:zplit/ui/group/widgets/invite_friends.dart';
-
 import 'package:zplit/ui/users/widgets/profile_screen.dart';
 
 abstract class AppRoutes {
@@ -23,6 +23,7 @@ abstract class AppRoutes {
   static const friendDetail = '/friend-detail';
   static const profile = '/profile';
   static const analytics = '/analytics';
+  static const qrScanner = '/qr-scanner';
 }
 
 class AppRouter {
@@ -40,8 +41,14 @@ class AppRouter {
       case AppRoutes.home:
         return _fade(const HomeScreen());
       case AppRoutes.inviteFriends:
-        final username = settings.arguments as String;
-        return _slide(InviteFriendsScreen(username: username));
+        final args = settings.arguments as Map<String, dynamic>;
+        return _slide(
+          InviteFriendsScreen(
+            userId: args['id'] as String,
+            name: args['name'] as String,
+            address: args['address'] as String,
+          ),
+        );
       case AppRoutes.addExpense:
         return _slide(const AddExpenseScreen());
       case AppRoutes.friendDetail:
@@ -53,6 +60,8 @@ class AppRouter {
             currentUserPublicKey: args['currentUserPublicKey'] as String,
           ),
         );
+      case AppRoutes.qrScanner:
+        return _slide(const QrScannerScreen());
       case AppRoutes.profile:
         return _slide(const ProfileScreen());
       case AppRoutes.analytics:

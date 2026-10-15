@@ -3,6 +3,7 @@ import 'package:zplit/domain/models/transaction/transaction_model.dart';
 abstract class TransactionRepository {
   Future<List<TransactionModel>> getAllTransactions();
   Future<TransactionModel?> getTransactionById(String id);
+
   Future<void> createTransaction({
     required String fromUserPublicKey,
     required String toUserPublicKey,
@@ -26,10 +27,8 @@ abstract class TransactionRepository {
     required String transactionId,
     required String senderSignature,
   });
-  Future<void> acceptTransaction({
-    required String transactionId,
-    required String receiverSignature,
-    required String signedBalancePayload,
-  });
+
+  Future<void> acceptTransaction({required String transactionId});
+
   Future<void> rejectTransaction(String transactionId);
 }

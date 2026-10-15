@@ -4,6 +4,7 @@ import 'package:zplit/core/database/app_database.dart';
 import 'package:zplit/core/database/daos/transactions_dao.dart';
 import 'package:zplit/core/database/daos/balances_dao.dart';
 import 'package:zplit/core/database/tables/transactions_table.dart';
+import 'package:zplit/core/services/crypto_service.dart';
 import 'package:zplit/domain/models/transaction/transaction_model.dart';
 import 'package:zplit/domain/repositories/transaction/transaction_repository.dart';
 
@@ -78,7 +79,6 @@ class TransactionRepositoryImpl implements TransactionRepository {
     String? description,
     String? tag,
   }) {
-    print('💾 SAVING TX WITH ID: $id');
     return _transactionsDao.insertOrIgnore(
       TransactionsTableCompanion.insert(
         id: id,
@@ -105,23 +105,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
-  Future<void> acceptTransaction({
-    required String transactionId,
-    required String receiverSignature,
-    required String signedBalancePayload,
-  }) async {
+  Future<void> acceptTransaction({required String transactionId}) async {
     final existing = await _transactionsDao.getById(transactionId);
-    print('🔍 LOOKING FOR TX: $transactionId'); // ADD
-
-    print('🔍 FOUND: $existing'); // ADD
-
     if (existing == null) throw Exception('Transaction not found');
-
-    await _transactionsDao.updateStatus(
-      transactionId,
-      TransactionStatus.signed,
-      receiverSignature: receiverSignature,
-    );
 
     final counterpartyKey = existing.fromUserPublicKey;
 
@@ -129,14 +115,34 @@ class TransactionRepositoryImpl implements TransactionRepository {
       counterpartyKey,
       existing.currency,
     );
-
     final currentNet = BigInt.from(currentBalance?.netAmount ?? 0);
 
     final newNet = currentNet + existing.amount;
 
+    final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final receiverSignature = await CryptoService.signBalance(
+      fromPublicKey: counterpartyKey,
+      toPublicKey: existing.toUserPublicKey,
+      netAmount: newNet,
+      currency: existing.currency,
+    );
+    final signedBalancePayload = CryptoService.buildBalancePayload(
+      fromPublicKey: counterpartyKey,
+      toPublicKey: existing.toUserPublicKey,
+      netAmount: newNet,
+      currency: existing.currency,
+      timestamp: ts,
+    );
+
+    await _transactionsDao.updateStatus(
+      transactionId,
+      TransactionStatus.signed,
+      receiverSignature: receiverSignature,
+    );
+
     await _balancesDao.upsert(
       BalancesTableCompanion(
-        userPublicKey: Value(existing.fromUserPublicKey),
+        userPublicKey: Value(counterpartyKey),
         currency: Value(existing.currency),
         netAmount: Value(newNet.toInt()),
         signed: Value(signedBalancePayload),

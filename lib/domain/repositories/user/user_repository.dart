@@ -2,6 +2,7 @@ import 'package:zplit/domain/models/user/user_model.dart';
 
 abstract class UserRepository {
   Future<List<UserModel>> getAllUsers();
+  Future<UserModel?> getCurrentUser();
   Future<UserModel?> getUserByPublicKey(String publicKey);
   Future<void> upsertUser({
     required String publicKey,
