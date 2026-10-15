@@ -10,12 +10,11 @@ import 'package:zplit/data/transaction/transaction_repository.dart';
 import 'package:zplit/data/user/user_repository.dart';
 import 'package:zplit/routing/App_router.dart';
 import 'package:zplit/ui/balance/view_model/balance_bloc.dart';
-import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
+import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/core/theme/app_theme.dart';
-import 'package:zplit/ui/users/view_model/user_event.dart';
 
 class AppBlocObserver extends BlocObserver {
   @override
