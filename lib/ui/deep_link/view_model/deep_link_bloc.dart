@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:zplit/core/services/deep_link_service.dart';
 import 'package:zplit/domain/repositories/transaction/transaction_repository.dart';
@@ -9,9 +9,6 @@ import 'package:zplit/domain/repositories/user/user_repository.dart';
 
 part 'deep_link_event.dart';
 part 'deep_link_state.dart';
-
-const _storage = FlutterSecureStorage();
-const _addressStorageKey = 'evm_address';
 
 class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
   final UserRepository _userRepository;
@@ -159,7 +156,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       await file.writeAsBytes(bytes, flush: true);
       return file.path;
     } catch (e) {
-      print('Failed to save synced profile picture: $e');
+      debugPrint('Failed to save synced profile picture: $e');
       return null;
     }
   }
