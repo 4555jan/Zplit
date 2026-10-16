@@ -1,6 +1,5 @@
 import 'dart:convert'; // CHANGED
 import 'dart:io';
-import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,7 +16,6 @@ import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_event.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
-import 'package:zplit/ui/users/widgets/Homebottomnav.dart';
 import 'package:zplit/ui/transaction/widgets/balance_card.dart';
 import 'package:zplit/ui/users/widgets/friendlist.dart';
 import 'package:zplit/ui/nfc/view_model/nfc_bloc.dart'; // NFC
@@ -34,7 +32,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedNavIndex = 0;
   String? _myAddress;
 
   @override
@@ -268,9 +265,9 @@ class _HomeScreenState extends State<HomeScreen>
                 onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
                 child: CircleAvatar(
                   radius: 22,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
                   backgroundImage: hasImage
-                      ? FileImage(File(profilePicturePath!))
+                      ? FileImage(File(profilePicturePath))
                       : null,
                   child: !hasImage
                       ? Icon(
@@ -383,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen>
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
         ),
         child: TabBar(
           controller: _tabController,
@@ -392,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen>
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
@@ -486,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen>
               errorBuilder: (_, __, ___) => Icon(
                 Icons.receipt_long_outlined,
                 size: 100,
-                color: colors.primary.withOpacity(0.25),
+                color: colors.primary.withValues(alpha: 0.25),
               ),
             ),
           ),
@@ -494,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen>
           Text(
             'No Expenses Found',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.55),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
               fontWeight: FontWeight.w500,
             ),
           ),
