@@ -103,7 +103,7 @@ class _SettlementView extends StatelessWidget {
                   'the send inside your wallet app — Zplit does not custody '
                   'or move funds directly.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurface.withOpacity(0.6),
+                    color: colors.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -192,7 +192,7 @@ class _SettlementView extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.55),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           ),
         ),
         Text(
