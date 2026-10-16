@@ -1,7 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/domain/repositories/user/user_repository.dart';
-import 'package:zplit/ui/users/view_models/user_event.dart';
-import 'package:zplit/ui/users/view_models/user_state.dart';
+
+import 'package:zplit/ui/users/view_model/user_event.dart';
+import 'package:zplit/ui/users/view_model/user_state.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
   final UserRepository _userRepository;

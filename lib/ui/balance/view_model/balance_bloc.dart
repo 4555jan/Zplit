@@ -1,7 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/domain/repositories/balance/balance_repository.dart';
-import 'package:zplit/ui/balance/view_models/balance_event.dart';
-import 'package:zplit/ui/balance/view_models/balance_state.dart';
+
+import 'package:zplit/ui/balance/view_model/balance_event.dart';
+import 'package:zplit/ui/balance/view_model/balance_state.dart';
 
 class BalanceBloc extends Bloc<BalanceEvent, BalanceState> {
   final BalanceRepository _balanceRepository;

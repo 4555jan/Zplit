@@ -1,7 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/domain/repositories/group/group_repository.dart';
-import 'package:zplit/ui/group/view_models/group_event.dart';
-import 'package:zplit/ui/group/view_models/group_state.dart';
+
+import 'package:zplit/ui/group/view_model/group_event.dart';
+import 'package:zplit/ui/group/view_model/group_state.dart';
 
 class GroupBloc extends Bloc<GroupEvent, GroupState> {
   final GroupRepository _groupRepository;
