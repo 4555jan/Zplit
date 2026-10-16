@@ -61,6 +61,7 @@ dependencies:
   flutter_p2p_connection: ^3.0.3
   google_mlkit_text_recognition: ^0.16.0
   fl_chart: ^0.69.0
+  equatable: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +76,8 @@ dev_dependencies:
   drift_dev: ^2.31.0
   build_runner: ^2.15.0
   flutter_launcher_icons: ^0.14.3
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
 
 
 # For information on the generic Dart part of this file, see the
@@ -91,6 +94,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
   - assets/images/zplit-logo(1).png
+  - assets/images/zplit-logo.png
   - assets/images/onboarding-1.png
   - assets/images/onboarding-2.png
   - assets/images/onboarding-3.png

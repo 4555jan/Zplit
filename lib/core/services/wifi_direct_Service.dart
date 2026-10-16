@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_p2p_connection/flutter_p2p_connection.dart';
 
 /// Wraps flutter_p2p_connection's host/client split into a single
@@ -130,7 +131,7 @@ class WifiDirectTransportService {
     final completer = Completer<void>();
     final sub = await client.startScan((devices) {
       for (final d in devices) {
-        print(
+        debugPrint(
           '[WiFiDirect] discovered: "${d.deviceName}" (${d.deviceAddress})',
         );
       }
@@ -262,6 +263,7 @@ class WifiDirectTransportService {
     }
   }
 
+  // ignore: unused_element
   Future<void> _teardownHost() async {
     await _clientListSub?.cancel();
     await _receivedTextSub?.cancel();

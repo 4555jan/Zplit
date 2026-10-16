@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class ReceiptScanResult {
@@ -61,7 +62,7 @@ class OcrService {
             final hasDecimal = RegExp(r'[.,]\d{1,2}$').hasMatch(raw!.trim());
 
             if (isTotalLine) {
-              if (inlineTotalAmount == null || value > inlineTotalAmount!) {
+              if (inlineTotalAmount == null || value > inlineTotalAmount) {
                 inlineTotalAmount = value;
               }
             }
@@ -85,14 +86,14 @@ class OcrService {
 
     // TEMP DIAGNOSTIC LOGGING — safe to remove once confirmed reliable
     // across more receipts.
-    print('===OCR_LINES_START===');
+    debugPrint('===OCR_LINES_START===');
     for (final l in lines) {
-      print('LINE: $l');
+      debugPrint('LINE: $l');
     }
-    print('===OCR_LINES_END===');
-    print('EXTRACTED_AMOUNT: $amount');
-    print('EXTRACTED_DATE: $date');
-    print('EXTRACTED_MERCHANT: $merchant');
+    debugPrint('===OCR_LINES_END===');
+    debugPrint('EXTRACTED_AMOUNT: $amount');
+    debugPrint('EXTRACTED_DATE: $date');
+    debugPrint('EXTRACTED_MERCHANT: $merchant');
 
     return ReceiptScanResult(
       merchantName: merchant,

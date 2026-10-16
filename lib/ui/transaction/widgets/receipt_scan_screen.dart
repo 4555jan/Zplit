@@ -276,9 +276,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: colors.error.withOpacity(0.08),
+                  color: colors.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.error.withOpacity(0.25)),
+                  border: Border.all(color: colors.error.withValues(alpha: 0.25)),
                 ),
                 child: Row(
                   children: [
@@ -315,7 +315,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               'Amount',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface.withOpacity(0.55),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                 fontSize: 12,
                 letterSpacing: 0.3,
               ),
@@ -325,7 +325,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               decoration: BoxDecoration(
                 color: theme.cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.dividerColor.withOpacity(0.7)),
+                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.7)),
               ),
               child: TextField(
                 controller: _amountController,
@@ -351,7 +351,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               'Date',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface.withOpacity(0.55),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                 fontSize: 12,
                 letterSpacing: 0.3,
               ),
@@ -368,7 +368,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                   color: theme.cardColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.dividerColor.withOpacity(0.7),
+                    color: theme.dividerColor.withValues(alpha: 0.7),
                   ),
                 ),
                 child: Row(
@@ -381,7 +381,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: _extractedDate != null
                               ? theme.colorScheme.onSurface
-                              : theme.colorScheme.onSurface.withOpacity(0.4),
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                       ),
                     ),
