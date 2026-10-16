@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/domain/models/balance/balance_model.dart';
@@ -25,6 +26,10 @@ class FriendDetailScreen extends StatefulWidget {
 }
 
 class _FriendDetailScreenState extends State<FriendDetailScreen> {
+  bool get _hasFriendPicture =>
+      widget.friend.profilePicture != null &&
+      File(widget.friend.profilePicture!).existsSync();
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +42,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     final colors = theme.colorScheme;
     final balance = widget.balance;
 
-    // ✅ Divide by 100 — stored in paise, display in rupees
     final amountInRupees = (balance?.netAmount ?? 0) / 100.0;
     final isPositive = amountInRupees >= 0;
 
@@ -72,11 +76,10 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                           CircleAvatar(
                             radius: 16,
                             backgroundColor: colors.primary.withOpacity(0.12),
-                            backgroundImage:
-                                widget.friend.profilePicture != null
-                                ? NetworkImage(widget.friend.profilePicture!)
+                            backgroundImage: _hasFriendPicture
+                                ? FileImage(File(widget.friend.profilePicture!))
                                 : null,
-                            child: widget.friend.profilePicture == null
+                            child: !_hasFriendPicture
                                 ? Text(
                                     widget.friend.displayName.isNotEmpty
                                         ? widget.friend.displayName[0]
@@ -122,7 +125,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
 
                 const SizedBox(height: 16),
 
-                // ── Balance ──
                 Text(
                   oweLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -333,7 +335,16 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     ThemeData theme,
     ColorScheme colors,
   ) {
-    final isSender = tx.fromUserPublicKey == widget.currentUserPublicKey;
+    // ── Who actually paid ──
+    // tx.fromUserPublicKey is whoever CREATED the transaction record, which is
+    // NOT necessarily who paid (the "They Paid" split option lets the creator
+    // record that the *other* person paid). The sign of tx.amount is the real
+    // source of truth for direction, matching the balance-update logic:
+    //   amount > 0  → fromUser owes toUser   → toUser paid
+    //   amount < 0  → toUser owes fromUser   → fromUser paid
+    final isFromUser = tx.fromUserPublicKey == widget.currentUserPublicKey;
+    final amountIsPositive = tx.amount > BigInt.zero;
+    final iPaid = amountIsPositive ? !isFromUser : isFromUser;
 
     // ✅ Divide by 100 — stored in paise, display in rupees
     final amountInRupees = (tx.amount / BigInt.from(100)).toDouble();
@@ -405,12 +416,13 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isSender ? 'You paid:' : '${widget.friend.displayName} paid:',
+                // ✅ derived from amount sign, not from who created the row
+                iPaid ? 'You paid:' : '${widget.friend.displayName} paid:',
                 style: TextStyle(fontSize: 11, color: Colors.grey[500]),
               ),
               const SizedBox(height: 2),
               Text(
-                '₹${amountInRupees.toStringAsFixed(2)}', // ✅ correct amount
+                '₹${amountInRupees.abs().toStringAsFixed(2)}', // ✅ always show magnitude
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,

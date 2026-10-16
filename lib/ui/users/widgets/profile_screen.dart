@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:zplit/routing/App_router.dart';
+import 'package:zplit/domain/models/user/user_model.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
 
@@ -27,20 +29,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _address = address);
   }
 
+  UserModel? _findCurrentUser(UserState userState) {
+    if (userState is! UserLoaded || _address == null) return null;
+    final matches = userState.users.where((u) => u.publicKey == _address);
+    return matches.isNotEmpty ? matches.first : null;
+  }
+
   void _navigateToInvite(BuildContext context) {
     final userState = context.read<UserBloc>().state;
-    if (userState is UserLoaded && userState.users.isNotEmpty) {
-      final me = userState.users.first;
-      Navigator.pushNamed(
-        context,
-        AppRoutes.inviteFriends,
-        arguments: {
-          'id': me.publicKey,
-          'name': me.displayName,
-          'address': _address ?? '',
-        },
-      );
-    }
+    final me = _findCurrentUser(userState);
+    if (me == null) return;
+
+    Navigator.pushNamed(
+      context,
+      AppRoutes.inviteFriends,
+      arguments: {
+        'id': me.publicKey,
+        'name': me.displayName,
+        'address': _address ?? '',
+      },
+    );
   }
 
   @override
@@ -48,9 +56,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final userState = context.watch<UserBloc>().state;
-    final displayName = userState is UserLoaded && userState.users.isNotEmpty
-        ? userState.users.first.displayName
-        : 'My Profile';
+    final me = _findCurrentUser(userState);
+    final displayName = me?.displayName ?? 'My Profile';
+
+    final hasImage =
+        me?.profilePicture != null && File(me!.profilePicture!).existsSync();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -100,7 +110,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   CircleAvatar(
                     radius: 52,
                     backgroundColor: colors.primary.withOpacity(0.12),
-                    child: Icon(Icons.person, size: 52, color: colors.primary),
+                    backgroundImage: hasImage
+                        ? FileImage(File(me!.profilePicture!))
+                        : null,
+                    child: !hasImage
+                        ? Icon(Icons.person, size: 52, color: colors.primary)
+                        : null,
                   ),
                   const SizedBox(height: 14),
                   Text(

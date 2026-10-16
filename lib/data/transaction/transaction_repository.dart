@@ -155,4 +155,47 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<void> rejectTransaction(String transactionId) async {
     await _transactionsDao.deleteById(transactionId);
   }
+
+  @override
+  Future<void> applyRemoteAck({
+    required String transactionId,
+    required String outcome,
+  }) async {
+    if (outcome == 'rejected') {
+      await _transactionsDao.deleteById(transactionId);
+      return;
+    }
+
+    if (outcome != 'accepted') return;
+
+    final existing = await _transactionsDao.getById(transactionId);
+    if (existing == null) {
+      return;
+    }
+
+    final counterpartyKey = existing.toUserPublicKey;
+
+    final currentBalance = await _balancesDao.getByPublicKeyAndCurrency(
+      counterpartyKey,
+      existing.currency,
+    );
+    final currentNet = BigInt.from(currentBalance?.netAmount ?? 0);
+    final newNet = currentNet - existing.amount;
+
+    await _transactionsDao.updateStatus(
+      transactionId,
+      TransactionStatus.signed,
+
+      receiverSignature: null,
+    );
+
+    await _balancesDao.upsert(
+      BalancesTableCompanion(
+        userPublicKey: Value(counterpartyKey),
+        currency: Value(existing.currency),
+        netAmount: Value(newNet.toInt()),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
 }

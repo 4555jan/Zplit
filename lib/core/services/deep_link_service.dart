@@ -96,7 +96,6 @@ class DeepLinkService {
       } else {
         final amountBigInt = BigInt.from((amount * 100).round());
 
-        // Build the payload exactly as the sender signed it
         final verifyPayload = CryptoService.buildTransactionPayload(
           id: id,
           fromPublicKey: fromPublicKey,
@@ -131,7 +130,7 @@ class DeepLinkService {
         isVerified: isVerified,
       );
     } catch (e) {
-      print('🔗 PARSE ERROR: $e');
+      print(' PARSE ERROR: $e');
       return null;
     }
   }

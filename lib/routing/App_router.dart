@@ -30,16 +30,17 @@ class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.splash:
-        return _fade(const SplashScreen());
+        return _fade(const SplashScreen(), settings);
 
       case AppRoutes.onboarding:
-        return _slide(const OnboardingScreen());
+        return _slide(const OnboardingScreen(), settings);
 
       case AppRoutes.accountSetup:
-        return _slide(const AccountSetupScreen());
+        return _slide(const AccountSetupScreen(), settings);
 
       case AppRoutes.home:
-        return _fade(const HomeScreen());
+        return _fade(const HomeScreen(), settings);
+
       case AppRoutes.inviteFriends:
         final args = settings.arguments as Map<String, dynamic>;
         return _slide(
@@ -48,9 +49,12 @@ class AppRouter {
             name: args['name'] as String,
             address: args['address'] as String,
           ),
+          settings,
         );
+
       case AppRoutes.addExpense:
-        return _slide(const AddExpenseScreen());
+        return _slide(const AddExpenseScreen(), settings);
+
       case AppRoutes.friendDetail:
         final args = settings.arguments as Map<String, dynamic>;
         return _slide(
@@ -59,21 +63,26 @@ class AppRouter {
             balance: args['balance'] as BalanceModel?,
             currentUserPublicKey: args['currentUserPublicKey'] as String,
           ),
+          settings,
         );
+
       case AppRoutes.qrScanner:
-        return _slide(const QrScannerScreen());
+        return _slide(const QrScannerScreen(), settings);
+
       case AppRoutes.profile:
-        return _slide(const ProfileScreen());
+        return _slide(const ProfileScreen(), settings);
+
       case AppRoutes.analytics:
-        return _slide(const AnalyticsScreen());
+        return _slide(const AnalyticsScreen(), settings);
 
       default:
-        return _fade(const SplashScreen());
+        return _fade(const SplashScreen(), settings);
     }
   }
 
-  static PageRouteBuilder _fade(Widget page) {
+  static PageRouteBuilder _fade(Widget page, RouteSettings settings) {
     return PageRouteBuilder(
+      settings: settings, // ← keeps route.settings.name populated
       pageBuilder: (_, __, ___) => page,
       transitionsBuilder: (_, anim, __, child) {
         return FadeTransition(opacity: anim, child: child);
@@ -82,8 +91,9 @@ class AppRouter {
     );
   }
 
-  static PageRouteBuilder _slide(Widget page) {
+  static PageRouteBuilder _slide(Widget page, RouteSettings settings) {
     return PageRouteBuilder(
+      settings: settings, // ← keeps route.settings.name populated
       pageBuilder: (_, __, ___) => page,
       transitionsBuilder: (_, anim, __, child) {
         final tween = Tween(

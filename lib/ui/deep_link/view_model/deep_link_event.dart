@@ -1,9 +1,25 @@
 part of 'deep_link_bloc.dart';
 
-abstract class DeepLinkEvent {}
+sealed class DeepLinkEvent {
+  const DeepLinkEvent();
+}
 
-/// Fired when any zplit:// URI is received (cold or warm start)
 class DeepLinkReceived extends DeepLinkEvent {
   final Uri uri;
-  DeepLinkReceived(this.uri);
+  const DeepLinkReceived(this.uri);
+}
+
+class BluetoothInviteReceived extends DeepLinkEvent {
+  final String jsonPayload;
+  const BluetoothInviteReceived(this.jsonPayload);
+}
+
+class BluetoothAckReceived extends DeepLinkEvent {
+  final String jsonPayload;
+  const BluetoothAckReceived(this.jsonPayload);
+}
+
+class BluetoothTransactionReceived extends DeepLinkEvent {
+  final String jsonPayload;
+  const BluetoothTransactionReceived(this.jsonPayload);
 }

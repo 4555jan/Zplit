@@ -12,19 +12,45 @@ class BalanceSummaryCard extends StatelessWidget {
     required this.onAnalyticsTap,
   });
 
-  static const _positiveColor = Color(0xFF16A34A);
+  String _formatAmount(int minorUnits) {
+    final rupees = minorUnits ~/ 100;
+    final paise = minorUnits % 100;
+
+    final digits = rupees.toString();
+    final buffer = StringBuffer();
+    final len = digits.length;
+    for (int i = 0; i < len; i++) {
+      final posFromEnd = len - i;
+      buffer.write(digits[i]);
+      final isLast = posFromEnd == 1;
+      if (!isLast &&
+          (posFromEnd == 4 || (posFromEnd > 4 && (posFromEnd - 4) % 2 == 0))) {
+        buffer.write(',');
+      }
+    }
+    buffer.write('.');
+    buffer.write(paise.toString().padLeft(2, '0'));
+    return buffer.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isPositive = total > 0;
     final isSettled = total == 0;
 
     final label = isSettled
-        ? "You're all settled up"
+        ? 'Total'
         : isPositive
         ? 'You are owed'
         : 'You owe';
+
+    final amountColor = isSettled
+        ? theme.textTheme.displayLarge?.color
+        : isPositive
+        ? colors.primary
+        : colors.error;
 
     return Container(
       width: double.infinity,
@@ -49,48 +75,46 @@ class BalanceSummaryCard extends StatelessWidget {
                 onTap: onAnalyticsTap,
                 child: Icon(
                   Icons.bar_chart_rounded,
-                  color: _positiveColor,
+                  color: colors.primary,
                   size: 22,
                 ),
               ),
             ),
           Text(
             label,
+
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.55),
-              fontSize: 13,
             ),
           ),
           const SizedBox(height: 6),
-          if (isSettled)
-            Text(
-              'Settled',
-              style: theme.textTheme.displayLarge?.copyWith(
-                fontSize: 36,
-                fontWeight: FontWeight.w700,
-              ),
-            )
-          else
-            Row(
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  '₹${total.abs()}',
+                  '₹${_formatAmount(total.abs())}',
+
                   style: theme.textTheme.displayLarge?.copyWith(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -1,
+                    fontSize: 40,
+                    color: amountColor,
                   ),
                 ),
-                Icon(
-                  isPositive
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  color: isPositive ? _positiveColor : theme.colorScheme.error,
-                  size: 26,
-                ),
+                if (!isSettled) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    isPositive
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    color: amountColor,
+                    size: 26,
+                  ),
+                ],
               ],
             ),
+          ),
         ],
       ),
     );

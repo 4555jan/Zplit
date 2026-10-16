@@ -82,11 +82,15 @@ class _FriendsListState extends State<FriendsList> {
   ) {
     return users.where((user) {
       final balance = balanceMap[user.publicKey];
-      final amount = balance?.netAmount ?? 0;
 
-      if (_quickFilter == 'owe' && amount >= 0) return false;
-      if (_quickFilter == 'owed' && amount <= 0) return false;
-      if (amount.abs() < _amountFrom || amount.abs() > _amountTo) return false;
+      final amountInRupees = (balance?.netAmount ?? 0) / 100.0;
+
+      if (_quickFilter == 'owe' && amountInRupees >= 0) return false;
+      if (_quickFilter == 'owed' && amountInRupees <= 0) return false;
+      if (amountInRupees.abs() < _amountFrom ||
+          amountInRupees.abs() > _amountTo) {
+        return false;
+      }
 
       if (balance != null && _dateFilter.isNotEmpty) {
         final now = DateTime.now();
@@ -131,6 +135,12 @@ class _FriendsListState extends State<FriendsList> {
       grouped[label]!.add(user);
     }
 
+    final filtersActive =
+        _quickFilter.isNotEmpty ||
+        _dateFilter.isNotEmpty ||
+        _amountFrom != 0 ||
+        _amountTo != 5000;
+
     return Stack(
       children: [
         ListView(
@@ -150,7 +160,13 @@ class _FriendsListState extends State<FriendsList> {
                   ),
                   GestureDetector(
                     onTap: _showFilterSheet,
-                    child: Icon(Icons.tune, color: colors.primary, size: 22),
+                    child: Icon(
+                      Icons.tune,
+                      color: filtersActive
+                          ? colors.primary
+                          : colors.primary.withOpacity(0.6),
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -160,11 +176,33 @@ class _FriendsListState extends State<FriendsList> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Center(
-                  child: Text(
-                    'No results match your filters.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.45),
-                    ),
+                  child: Column(
+                    children: [
+                      Text(
+                        filtersActive
+                            ? 'No results match your filters.'
+                            : 'No expenses yet.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.45),
+                        ),
+                      ),
+                      if (filtersActive) ...[
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _quickFilter = '';
+                              _dateFilter = '';
+                              _fromDate = null;
+                              _toDate = null;
+                              _amountFrom = 0;
+                              _amountTo = 5000;
+                            });
+                          },
+                          child: const Text('Clear filters'),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               )

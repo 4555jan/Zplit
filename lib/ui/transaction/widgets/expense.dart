@@ -4,7 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zplit/core/services/bluetooth_service.dart' show BtEndpoint;
 import 'package:zplit/core/services/crypto_service.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_event.dart';
+import 'package:zplit/ui/bluetooth/view_model/bluetooth_state.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_event.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
@@ -163,16 +167,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   double _calculateSplitAmount(double totalAmount) {
     switch (_selectedSplit) {
       case 'Split Equally':
-        return totalAmount / 2;
+        return -(totalAmount / 2);
       case 'You Paid':
-        return totalAmount;
-      case 'They Paid':
         return -totalAmount;
+      case 'They Paid':
+        return totalAmount;
       case 'Custom':
-        return totalAmount / 2;
+        return -(totalAmount / 2);
       default:
-        return totalAmount / 2;
+        return -(totalAmount / 2);
     }
+  }
+
+  BtEndpoint? _findConnectedEndpointForFriend(
+    BluetoothState btState,
+    String friendDisplayName,
+  ) {
+    for (final endpoint in btState.nearbyEndpoints) {
+      final status = btState.connectionStatus[endpoint.id];
+      if (endpoint.name == friendDisplayName &&
+          status == BtConnectionStatus.connected) {
+        return endpoint;
+      }
+    }
+    return null;
   }
 
   Future<void> _sendExpense() async {
@@ -244,10 +262,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'ts': ts,
         'sig': senderSignature,
       };
-      final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
+
+      bool sentViaBluetooth = false;
+      String? bluetoothEndpointId;
+      final jsonPayload = jsonEncode(payload);
+      final btState = context.read<BluetoothBloc>().state;
+      final endpoint = _findConnectedEndpointForFriend(
+        btState,
+        _selectedFriendName!,
+      );
+      if (endpoint != null) {
+        context.read<BluetoothBloc>().add(
+          BluetoothSendPayload(endpoint.id, jsonPayload),
+        );
+        sentViaBluetooth = true;
+        bluetoothEndpointId = endpoint.id;
+      }
+
+      final encoded = base64Url.encode(utf8.encode(jsonPayload));
       final link = 'zplit://tx/v1?d=$encoded';
 
       if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -259,6 +295,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             description: desc,
             tag: tag,
             deepLink: link,
+            sentViaBluetooth: sentViaBluetooth,
+            bluetoothEndpointId: bluetoothEndpointId,
+            bluetoothJsonPayload: sentViaBluetooth ? jsonPayload : null,
           ),
         ),
       );
@@ -502,9 +541,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   children: _categories.map((cat) {
                     final isSelected = _selectedCategory == cat;
                     return GestureDetector(
-                      onTap: () => setState(
-                        () => _selectedCategory = isSelected ? '' : cat,
-                      ),
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            if (_paidForController.text == cat) {
+                              _paidForController.clear();
+                            }
+                            _selectedCategory = '';
+                          } else {
+                            final canAutoFill =
+                                _paidForController.text.isEmpty ||
+                                _paidForController.text == _selectedCategory;
+                            if (canAutoFill) {
+                              _paidForController.text = cat;
+                            }
+                            _selectedCategory = cat;
+                          }
+                        });
+                      },
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(
