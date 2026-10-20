@@ -88,5 +88,14 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- Required so canLaunchUrl/launchUrl can detect installed EVM
+             wallet apps (MetaMask, Trust Wallet, etc.) for the settlement
+             feature — Android 11+ package visibility restricts this
+             unless declared here. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ethereum" />
+        </intent>
     </queries>
 </manifest>
