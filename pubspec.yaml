@@ -55,6 +55,7 @@ dependencies:
   flutter_nfc_kit: ^3.6.2
   ndef: ^0.4.0
   flutter_p2p_connection: ^3.0.3
+  google_mlkit_text_recognition: ^0.16.0
   equatable: ^2.1.0
 
 dev_dependencies:
