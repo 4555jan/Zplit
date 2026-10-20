@@ -13,6 +13,9 @@ import 'package:zplit/ui/transaction/view_model/transaction_state.dart';
 import 'package:zplit/ui/transaction/widgets/TransactionSentscreen.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_state.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -192,6 +195,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return null;
   }
 
+  // WiFi Direct here is a single 1-to-1 link (unlike Bluetooth, which
+  // tracks multiple nearby endpoints at once). WifiState.peerName is
+  // NOT the friend's app display name — on the client side it's
+  // currently always the literal string 'Host' (see
+  // WifiDirectTransportService._becomeClient), and on the host side
+  // it's the peer's raw device model name (e.g. 'SM-E146B'), not
+  // their Zplit display name. Matching peerName against
+  // friendDisplayName therefore fails on every real send. Since
+  // there's only ever one possible peer in this flow, being connected
+  // at all is sufficient signal that we're talking to the selected
+  // friend.
+  bool _isWifiConnectedToFriend(WifiState wifiState, String friendDisplayName) {
+    return wifiState.isConnected;
+  }
+
   Future<void> _sendExpense() async {
     final totalAmount = double.tryParse(_amountController.text.trim());
     if (totalAmount == null || totalAmount <= 0) {
@@ -263,20 +281,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'sig': senderSignature,
       };
 
+      final jsonPayload = jsonEncode(payload);
+
       bool sentViaBluetooth = false;
       String? bluetoothEndpointId;
-      final jsonPayload = jsonEncode(payload);
       final btState = context.read<BluetoothBloc>().state;
-      final endpoint = _findConnectedEndpointForFriend(
+      final btEndpoint = _findConnectedEndpointForFriend(
         btState,
         _selectedFriendName!,
       );
-      if (endpoint != null) {
+      if (btEndpoint != null) {
         context.read<BluetoothBloc>().add(
-          BluetoothSendPayload(endpoint.id, jsonPayload),
+          BluetoothSendPayload(btEndpoint.id, jsonPayload),
         );
         sentViaBluetooth = true;
-        bluetoothEndpointId = endpoint.id;
+        bluetoothEndpointId = btEndpoint.id;
+      }
+
+      bool sentViaWifi = false;
+      final wifiState = context.read<WifiBloc>().state;
+      if (_isWifiConnectedToFriend(wifiState, _selectedFriendName!)) {
+        context.read<WifiBloc>().add(WifiSendPayload(jsonPayload));
+        sentViaWifi = true;
       }
 
       final encoded = base64Url.encode(utf8.encode(jsonPayload));
@@ -299,6 +325,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             bluetoothEndpointId: bluetoothEndpointId,
             bluetoothJsonPayload: sentViaBluetooth ? jsonPayload : null,
             nfcJsonPayload: jsonPayload,
+            sentViaWifi: sentViaWifi,
+            wifiJsonPayload: sentViaWifi ? jsonPayload : null,
           ),
         ),
       );

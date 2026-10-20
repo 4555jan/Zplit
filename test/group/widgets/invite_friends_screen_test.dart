@@ -29,6 +29,9 @@ import 'package:zplit/ui/nfc/view_model/nfc_state.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_event.dart';
 import 'package:zplit/ui/users/view_model/user_state.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_bloc.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_event.dart';
+import 'package:zplit/ui/wifi/view_model/Wifi_direct_state.dart';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -39,9 +42,13 @@ class MockBluetoothBloc extends MockBloc<BluetoothEvent, BluetoothState>
 
 class MockNfcBloc extends MockBloc<NfcEvent, NfcState> implements NfcBloc {}
 
+class MockWifiBloc extends MockBloc<WifiEvent, WifiState> implements WifiBloc {}
+
 class FakeUserEvent extends Fake implements UserEvent {}
 
 class FakeNfcEvent extends Fake implements NfcEvent {}
+
+class FakeWifiEvent extends Fake implements WifiEvent {}
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -62,6 +69,7 @@ void main() {
   late MockUserBloc userBloc;
   late MockBluetoothBloc bluetoothBloc;
   late MockNfcBloc nfcBloc;
+  late MockWifiBloc wifiBloc;
 
   String? clipboardText;
   final shareCalls = <MethodCall>[];
@@ -71,12 +79,14 @@ void main() {
     // BluetoothEvent is sealed, so a real event serves as the fallback.
     registerFallbackValue(const BluetoothDisconnectRequested('fallback'));
     registerFallbackValue(FakeNfcEvent());
+    registerFallbackValue(FakeWifiEvent());
   });
 
   setUp(() {
     userBloc = MockUserBloc();
     bluetoothBloc = MockBluetoothBloc();
     nfcBloc = MockNfcBloc();
+    wifiBloc = MockWifiBloc();
 
     when(() => userBloc.state).thenReturn(
       UserLoaded([
@@ -91,6 +101,7 @@ void main() {
     );
     when(() => bluetoothBloc.state).thenReturn(const BluetoothState());
     when(() => nfcBloc.state).thenReturn(const NfcState());
+    when(() => wifiBloc.state).thenReturn(const WifiState());
 
     clipboardText = null;
     shareCalls.clear();
@@ -126,6 +137,7 @@ void main() {
       BlocProvider<UserBloc>.value(value: userBloc),
       BlocProvider<BluetoothBloc>.value(value: bluetoothBloc),
       BlocProvider<NfcBloc>.value(value: nfcBloc),
+      BlocProvider<WifiBloc>.value(value: wifiBloc),
     ],
     child: app,
   );
@@ -620,6 +632,56 @@ void main() {
 
       expect(find.byType(InviteFriendsScreen), findsNothing);
       expect(find.text('Open'), findsOneWidget);
+    });
+  });
+
+  group('InviteFriendsScreen – WiFi Direct', () {
+    testWidgets('starts disabled with the enable hint', (tester) async {
+      await tester.pumpWidget(wrap());
+      await tester.pump();
+
+      expect(find.text('WiFi Direct'), findsOneWidget);
+      expect(tester.widget<Switch>(switchAt(3)).value, isFalse);
+      expect(
+        find.text('Enable WiFi Direct for faster nearby sharing.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('toggling WiFi Direct on dispatches WifiToggled(true)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(wrap());
+      await tester.pump();
+
+      await tapVisible(tester, switchAt(3));
+
+      final event =
+          verify(
+                () => wifiBloc.add(captureAny(that: isA<WifiToggled>())),
+              ).captured.single
+              as WifiToggled;
+      expect(event.enabled, isTrue);
+      expect(event.myDisplayName, _name);
+    });
+
+    testWidgets('permission denied shows the permissions hint', (
+      tester,
+    ) async {
+      when(
+        () => wifiBloc.state,
+      ).thenReturn(const WifiState(permissionDenied: true));
+
+      await tester.pumpWidget(wrap());
+      await tester.pump();
+
+      expect(
+        find.text(
+          'WiFi Direct & nearby-device permissions are '
+          'required. Enable them in system settings.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }
