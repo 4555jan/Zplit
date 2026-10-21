@@ -136,6 +136,10 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             );
           }
 
+          // the instant any endpoint becomes connected, automatically
+          // send our own profile (name + picture) without waiting for the
+          // user to tap "Send". Both devices run this same logic, so a
+          // single connection syncs profile pictures in both directions.
           state.connectionStatus.forEach((endpointId, status) {
             if (status == BtConnectionStatus.connected &&
                 !_autoSentTo.contains(endpointId)) {
@@ -236,7 +240,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: colors.primary.withOpacity(0.6),
+                    color: colors.primary.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -244,7 +248,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   child: Text(
                     'Searching for nearby Zplit users...',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -366,8 +370,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -418,8 +422,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -486,7 +490,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: colors.primary,
+              activeThumbColor: colors.primary,
             ),
           ],
         ),
@@ -500,8 +504,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -549,7 +553,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                           Icon(
                             Icons.keyboard_arrow_down,
                             size: 16,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ],
                       ),
@@ -559,7 +565,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                 Switch(
                   value: _proximityEnabled,
                   onChanged: (val) => setState(() => _proximityEnabled = val),
-                  activeColor: colors.primary,
+                  activeThumbColor: colors.primary,
                 ),
               ],
             ),
@@ -575,8 +581,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -682,7 +688,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               : 'Hold your device near another\nNFC-enabled phone to connect.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: 16),
@@ -713,7 +719,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     );
   }
 
-  // ── WiFi Direct section — backed by WifiBloc ──
+  // ── WiFi Direct section — host/client roles handled invisibly under
+  // the hood by WifiDirectTransportService's scan-then-host heuristic;
+  // same one-toggle UX as Bluetooth/NFC, per project decision. ──
 
   Widget _buildWifiSection(ThemeData theme) {
     return BlocConsumer<WifiBloc, WifiState>(
@@ -788,7 +796,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               : 'Waiting to connect...',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         if (wifiState.isConnected) ...[
@@ -833,7 +841,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
         message,
         textAlign: TextAlign.center,
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
         ),
       ),
     );
@@ -851,6 +859,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
   }
 
   void _shareLink() {
-    Share.share(_inviteDeepLink, subject: 'Join me on Zplit!');
+    SharePlus.instance.share(
+      ShareParams(text: _inviteDeepLink, subject: 'Join me on Zplit!'),
+    );
   }
 }

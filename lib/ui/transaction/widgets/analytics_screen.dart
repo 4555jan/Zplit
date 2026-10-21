@@ -300,7 +300,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? colors.primary.withOpacity(0.1) : theme.cardColor,
+          color: active ? colors.primary.withValues(alpha: 0.1) : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active ? colors.primary : theme.dividerColor,
@@ -314,7 +314,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               size: 14,
               color: active
                   ? colors.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.6),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(width: 6),
             Text(
@@ -322,7 +322,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: active
                     ? colors.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: active ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -516,7 +516,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -568,7 +568,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               labels[i],
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 10,
-                                color: theme.colorScheme.onSurface.withOpacity(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 
                                   0.5,
                                 ),
                               ),
@@ -591,7 +591,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: colors.primary.withOpacity(0.1),
+                        color: colors.primary.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -637,7 +637,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: selected ? colors.primary.withOpacity(0.1) : null,
+                color: selected ? colors.primary.withValues(alpha: 0.1) : null,
                 borderRadius: BorderRadius.circular(20),
               ),
               alignment: Alignment.center,
@@ -646,7 +646,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: selected
                       ? colors.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.5),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -764,14 +764,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Icon(
               Icons.show_chart_rounded,
               size: 40,
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -845,7 +845,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -896,7 +896,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               labels[i],
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 10,
-                                color: theme.colorScheme.onSurface.withOpacity(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 
                                   0.5,
                                 ),
                               ),
@@ -933,7 +933,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                   ],
                 ),
-                swapAnimationDuration: const Duration(milliseconds: 400),
+                duration: const Duration(milliseconds: 400),
               ),
             ),
         ],
@@ -963,7 +963,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -988,14 +988,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     Icon(
                       Icons.timeline_outlined,
                       size: 36,
-                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Select a friend above to see how your\nbalance with them has changed over time',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -1019,7 +1019,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1076,7 +1076,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               '${d.day}/${d.month}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 10,
-                                color: theme.colorScheme.onSurface.withOpacity(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 
                                   0.5,
                                 ),
                               ),
@@ -1091,7 +1091,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     horizontalLines: [
                       HorizontalLine(
                         y: 0,
-                        color: theme.colorScheme.onSurface.withOpacity(0.2),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                         strokeWidth: 1,
                         dashArray: [6, 4],
                       ),
@@ -1108,7 +1108,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         show: true,
                         color:
                             (spots.last.y >= 0 ? colors.primary : colors.error)
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -1161,7 +1161,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1199,7 +1199,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                       ],
                     ),
-                    swapAnimationDuration: const Duration(milliseconds: 400),
+                    duration: const Duration(milliseconds: 400),
                   ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1207,7 +1207,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       Text(
                         'Total',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                       Text(
@@ -1247,7 +1247,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       '${pct.toStringAsFixed(0)}%',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

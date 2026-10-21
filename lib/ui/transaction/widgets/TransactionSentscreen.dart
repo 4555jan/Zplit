@@ -158,7 +158,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: colors.primary.withOpacity(0.1),
+                  color: colors.primary.withValues(alpha: 0.1),
                 ),
                 child: Icon(
                   Icons.check_circle_outline_rounded,
@@ -177,7 +177,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
               Text(
                 '${widget.friendName} needs to accept this request',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.55),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -213,7 +213,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                   color: theme.cardColor,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: theme.dividerColor.withOpacity(0.7),
+                    color: theme.dividerColor.withValues(alpha: 0.7),
                   ),
                 ),
                 child: Column(
@@ -246,24 +246,23 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                       _summaryRow(theme, 'Category', widget.tag!),
                     ],
                     const SizedBox(height: 16),
-                    Divider(color: theme.dividerColor.withOpacity(0.5)),
+                    Divider(color: theme.dividerColor.withValues(alpha: 0.5)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Icon(
                           Icons.pending_outlined,
                           size: 16,
-                          color: colors.primary.withOpacity(0.7),
+                          color: colors.primary.withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Waiting for ${widget.friendName} to accept',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.primary.withOpacity(0.7),
+                              color: colors.primary.withValues(alpha: 0.7),
                               fontWeight: FontWeight.w500,
                             ),
-                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -280,7 +279,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                     ? 'Or share as backup'
                     : 'Scan to receive',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -297,7 +296,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: theme.dividerColor.withOpacity(0.5),
+                    color: theme.dividerColor.withValues(alpha: 0.5),
                   ),
                 ),
                 child: QrImageView(
@@ -384,9 +383,9 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: colors.primary.withOpacity(0.08),
+        color: colors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.primary.withOpacity(0.25)),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -432,9 +431,9 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: colors.primary.withOpacity(0.08),
+        color: colors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.primary.withOpacity(0.25)),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -482,9 +481,9 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: colors.primary.withOpacity(0.08),
+            color: colors.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colors.primary.withOpacity(0.25)),
+            border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [

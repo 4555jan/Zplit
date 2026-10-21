@@ -112,7 +112,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: isActive
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.primary.withOpacity(0.2),
+                              : theme.colorScheme.primary.withValues(
+                                  alpha: 0.2,
+                                ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       );

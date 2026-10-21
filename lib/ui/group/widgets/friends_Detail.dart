@@ -35,6 +35,9 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
   // build() on every rebuild (blocking disk I/O on the UI thread) —
   // same fix pattern applied to HomeScreen.
   bool _friendPictureExists = false;
+  bool get _hasFriendPicture =>
+      widget.friend.profilePicture != null &&
+      File(widget.friend.profilePicture!).existsSync();
 
   @override
   void initState() {
@@ -194,20 +197,20 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 Text(
                   oweLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.55),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   amountInRupees == 0
                       ? 'Settled'
-                      : '₹${amountInRupees.abs().toStringAsFixed(2)}',
+                      : '₹${amountInRupees.abs().toStringAsFixed(2)}', // ✅ correct amount
                   style: theme.textTheme.displayLarge?.copyWith(
                     fontSize: 42,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -1,
                     color: amountInRupees == 0
-                        ? theme.colorScheme.onSurface.withOpacity(0.4)
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                         : isPositive
                         ? Colors.green
                         : Colors.red,
@@ -301,7 +304,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
         ),
       ),
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: colors.primary.withOpacity(0.4)),
+        side: BorderSide(color: colors.primary.withValues(alpha: 0.4)),
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
@@ -498,7 +501,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: iconBg.withOpacity(0.12),
+              color: iconBg.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(itemIcon, color: iconBg, size: 20),

@@ -143,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 52,
-                    backgroundColor: colors.primary.withOpacity(0.12),
+                    backgroundColor: colors.primary.withValues(alpha: 0.12),
                     backgroundImage: hasImage
                         ? FileImage(File(me!.profilePicture!))
                         : null,
@@ -265,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
       ),
       child: Column(children: children),
     );
@@ -298,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
           ],
         ),
@@ -311,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       height: 1,
       indent: 16,
       endIndent: 16,
-      color: theme.dividerColor.withOpacity(0.5),
+      color: theme.dividerColor.withValues(alpha: 0.5),
     );
   }
 }
