@@ -171,7 +171,7 @@ void main() {
 
       expect(find.text('Invite Friends'), findsOneWidget);
       expect(find.text('Invite via Link'), findsOneWidget);
-      expect(find.text('zplit.aossie.org/invite'), findsOneWidget);
+      expect(find.text('https://zplit.aossie.org/invite'), findsOneWidget);
     });
 
     testWidgets('renders a QR code with a Share button', (tester) async {
@@ -665,9 +665,7 @@ void main() {
       expect(event.myDisplayName, _name);
     });
 
-    testWidgets('permission denied shows the permissions hint', (
-      tester,
-    ) async {
+    testWidgets('permission denied shows the permissions hint', (tester) async {
       when(
         () => wifiBloc.state,
       ).thenReturn(const WifiState(permissionDenied: true));

@@ -139,15 +139,36 @@ void main() {
   });
 
   group('error state', () {
-    testWidgets('shows the error message on TransactionError', (tester) async {
+    testWidgets(
+      'shows the error message and a Retry button on TransactionError',
+      (tester) async {
+        stub(TransactionError('network unreachable'));
+
+        await tester.pumpWidget(buildSubject());
+
+        expect(
+          find.text("Couldn't load transactions: network unreachable"),
+          findsOneWidget,
+        );
+        expect(find.text('Retry'), findsOneWidget);
+      },
+    );
+
+    testWidgets('tapping Retry dispatches LoadAllTransactions again', (
+      tester,
+    ) async {
       stub(TransactionError('network unreachable'));
 
       await tester.pumpWidget(buildSubject());
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
 
-      expect(find.text('Error: network unreachable'), findsOneWidget);
+      // Once on init, once from the Retry tap.
+      verify(
+        () => transactionBloc.add(any(that: isA<LoadAllTransactions>())),
+      ).called(2);
     });
   });
-
   group('balance header', () {
     testWidgets('shows neutral "settled" copy when balance is null', (
       tester,
