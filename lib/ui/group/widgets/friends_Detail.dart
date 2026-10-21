@@ -35,9 +35,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
   // build() on every rebuild (blocking disk I/O on the UI thread) —
   // same fix pattern applied to HomeScreen.
   bool _friendPictureExists = false;
-  bool get _hasFriendPicture =>
-      widget.friend.profilePicture != null &&
-      File(widget.friend.profilePicture!).existsSync();
 
   @override
   void initState() {
@@ -137,7 +134,9 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundColor: colors.primary.withOpacity(0.12),
+                              backgroundColor: colors.primary.withValues(
+                                alpha: 0.12,
+                              ),
                               backgroundImage: _friendPictureExists
                                   ? FileImage(
                                       File(widget.friend.profilePicture!),
@@ -335,7 +334,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                     // adapt to dark mode. onSurface.withOpacity matches
                     // the convention used everywhere else in this app.
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurface.withOpacity(0.6),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -376,7 +375,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                           'Couldn\'t load transactions: ${state.message}',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurface.withOpacity(0.6),
+                            color: colors.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -404,7 +403,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                     child: Text(
                       'No transactions shared yet.',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.onSurface.withOpacity(0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   );
@@ -429,7 +428,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                             entry.key,
                             style: theme.textTheme.labelSmall?.copyWith(
                               // FIX: was Colors.grey[500] — hardcoded.
-                              color: colors.onSurface.withOpacity(0.5),
+                              color: colors.onSurface.withValues(alpha: 0.5),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -527,7 +526,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   _formatDate(tx.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
                     // FIX: was Colors.grey[500] — hardcoded.
-                    color: colors.onSurface.withOpacity(0.5),
+                    color: colors.onSurface.withValues(alpha: 0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -543,7 +542,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   // FIX: was Colors.grey[500] — hardcoded.
-                  color: colors.onSurface.withOpacity(0.5),
+                  color: colors.onSurface.withValues(alpha: 0.5),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

@@ -33,7 +33,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedNavIndex = 0;
+
   String? _myAddress;
 
   // FIX: profile picture existence is now checked once, off the build
@@ -338,7 +338,9 @@ class _HomeScreenState extends State<HomeScreen>
                 onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
                 child: CircleAvatar(
                   radius: 22,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+                  backgroundColor: theme.colorScheme.primary.withValues(
+                    alpha: 0.15,
+                  ),
                   backgroundImage: hasImage
                       ? FileImage(File(profilePicturePath!))
                       : null,
@@ -462,8 +464,8 @@ class _HomeScreenState extends State<HomeScreen>
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                  theme.brightness == Brightness.dark ? 0.24 : 0.08,
+                               color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.24 : 0.08,
                 ),
                 blurRadius: 6,
                 offset: const Offset(0, 2),

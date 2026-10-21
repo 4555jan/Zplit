@@ -144,8 +144,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.15,
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
                                 ),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),

@@ -174,7 +174,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? '${_address!.substring(0, 6)}...${_address!.substring(_address!.length - 4)}'
                         : '',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.45),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.45,
+                      ),
                     ),
                   ),
                 ],
@@ -196,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 trailing: Text(
                   currentThemeLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
                 onTap: () {},

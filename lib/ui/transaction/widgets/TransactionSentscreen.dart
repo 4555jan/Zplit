@@ -318,7 +318,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
               Text(
                 'Let ${widget.friendName} scan this with Zplit',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -330,9 +330,11 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => Share.share(
-                    widget.deepLink,
-                    subject: 'Transaction from Zplit',
+                  onPressed: () => SharePlus.instance.share(
+                    ShareParams(
+                      text: widget.deepLink,
+                      subject: 'Transaction from Zplit',
+                    ),
                   ),
                   icon: const Icon(Icons.ios_share_rounded, size: 20),
                   label: Text(
@@ -556,7 +558,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
         const SizedBox(width: 12),
