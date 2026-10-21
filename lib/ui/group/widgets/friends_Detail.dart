@@ -30,14 +30,24 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
   // so settlement isn't blocked on adding a network/FX dependency.
   static const double _placeholderInrPerUsd = 83.0;
 
-  bool get _hasFriendPicture =>
-      widget.friend.profilePicture != null &&
-      File(widget.friend.profilePicture!).existsSync();
+  // FIX: profile picture existence is now checked once asynchronously
+  // instead of calling File(...).existsSync() synchronously inside
+  // build() on every rebuild (blocking disk I/O on the UI thread) —
+  // same fix pattern applied to HomeScreen.
+  bool _friendPictureExists = false;
 
   @override
   void initState() {
     super.initState();
     context.read<TransactionBloc>().add(LoadAllTransactions());
+    _checkFriendPicture();
+  }
+
+  Future<void> _checkFriendPicture() async {
+    final path = widget.friend.profilePicture;
+    if (path == null || path.isEmpty) return;
+    final exists = await File(path).exists();
+    if (mounted) setState(() => _friendPictureExists = exists);
   }
 
   void _onSettleUpTapped(double amountInRupees) {
@@ -114,36 +124,51 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                         icon: const Icon(Icons.chevron_left, size: 28),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: colors.primary.withValues(alpha: 0.12),
-                            backgroundImage: _hasFriendPicture
-                                ? FileImage(File(widget.friend.profilePicture!))
-                                : null,
-                            child: !_hasFriendPicture
-                                ? Text(
-                                    widget.friend.displayName.isNotEmpty
-                                        ? widget.friend.displayName[0]
-                                              .toUpperCase()
-                                        : '?',
-                                    style: TextStyle(
-                                      color: colors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.friend.displayName,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                      // FIX: wrapped in Expanded so a long display name
+                      // next to the avatar and the overflow menu doesn't
+                      // push past screen edges on narrow devices or at
+                      // large accessibility font scales.
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: colors.primary.withValues(
+                                alpha: 0.12,
+                              ),
+                              backgroundImage: _friendPictureExists
+                                  ? FileImage(
+                                      File(widget.friend.profilePicture!),
+                                    )
+                                  : null,
+                              child: !_friendPictureExists
+                                  ? Text(
+                                      widget.friend.displayName.isNotEmpty
+                                          ? widget.friend.displayName[0]
+                                                .toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        color: colors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                widget.friend.displayName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert),
@@ -305,8 +330,11 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 children: [
                   Text(
                     'Filter',
+                    // FIX: was Colors.grey[600] — hardcoded, didn't
+                    // adapt to dark mode. onSurface.withOpacity matches
+                    // the convention used everywhere else in this app.
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -321,10 +349,46 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
           child: BlocBuilder<TransactionBloc, TransactionState>(
             builder: (context, state) {
               if (state is TransactionLoading) {
-                return const Center(child: CircularProgressIndicator());
+                // FIX: color now explicit + theme-matched, was an
+                // unthemed default CircularProgressIndicator before.
+                return Center(
+                  child: CircularProgressIndicator(color: colors.primary),
+                );
               }
               if (state is TransactionError) {
-                return Center(child: Text('Error: ${state.message}'));
+                // FIX: bare error text had no retry affordance — now
+                // matches the pattern of a real error state with a
+                // way to recover instead of a dead end.
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: colors.error,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Couldn\'t load transactions: ${state.message}',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => context.read<TransactionBloc>().add(
+                            LoadAllTransactions(),
+                          ),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               }
               if (state is TransactionLoaded) {
                 final txs = state.transactions.where((tx) {
@@ -335,8 +399,13 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
                 if (txs.isEmpty) {
-                  return const Center(
-                    child: Text('No transactions shared yet.'),
+                  return Center(
+                    child: Text(
+                      'No transactions shared yet.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
                   );
                 }
 
@@ -358,7 +427,8 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                           child: Text(
                             entry.key,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.grey[500],
+                              // FIX: was Colors.grey[500] — hardcoded.
+                              color: colors.onSurface.withValues(alpha: 0.5),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -395,7 +465,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     final amountIsPositive = tx.amount > BigInt.zero;
     final iPaid = amountIsPositive ? !isFromUser : isFromUser;
 
-    // ✅ Divide by 100 — stored in paise, display in rupees
     final amountInRupees = (tx.amount / BigInt.from(100)).toDouble();
 
     IconData itemIcon = Icons.receipt_long_outlined;
@@ -449,29 +518,38 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _formatDate(tx.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
+                    // FIX: was Colors.grey[500] — hardcoded.
+                    color: colors.onSurface.withValues(alpha: 0.5),
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                // ✅ derived from amount sign, not from who created the row
                 iPaid ? 'You paid:' : '${widget.friend.displayName} paid:',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                style: TextStyle(
+                  fontSize: 11,
+                  // FIX: was Colors.grey[500] — hardcoded.
+                  color: colors.onSurface.withValues(alpha: 0.5),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
-                '₹${amountInRupees.abs().toStringAsFixed(2)}', // ✅ always show magnitude
+                '₹${amountInRupees.abs().toStringAsFixed(2)}',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,

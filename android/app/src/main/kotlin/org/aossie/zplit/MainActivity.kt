@@ -1,4 +1,4 @@
-package com.example.zplit
+package org.aossie.zplit
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:zplit/core/services/deep_link_service.dart';
@@ -42,6 +42,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
       (e, emit) => _handleTransactionPayload(e.jsonPayload, emit, via: 'nfc'),
     );
 
+    // WiFi Direct — same payload shapes again.
     on<WifiInviteReceived>(
       (e, emit) => _handleInvitePayload(e.jsonPayload, emit),
     );
@@ -51,6 +52,16 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     );
   }
 
+  /// Works for both link styles:
+  ///   https://zplit.aossie.org/invite?d=...  → route is the first path segment
+  ///   zplit://invite?d=...                   → route is the host
+  String _routeOf(Uri uri) {
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+    }
+    return uri.host;
+  }
+
   Future<void> _onDeepLinkReceived(
     DeepLinkReceived event,
     Emitter<DeepLinkState> emit,
@@ -58,7 +69,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     emit(DeepLinkLoading());
     try {
       final uri = event.uri;
-      final route = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+      final route = _routeOf(uri);
 
       if (route == 'invite') {
         await _handleInvite(uri, emit);
@@ -121,6 +132,8 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     emit(DeepLinkLoading());
     try {
       final encoded = base64Url.encode(utf8.encode(jsonPayload));
+      // Internal-only URI so the transport paths reuse the same
+      // parseAndVerify logic as real links. Never leaves the app.
       final fakeUri = Uri.parse('zplit://tx?d=$encoded');
       await _handleTransaction(fakeUri, emit, via: via);
     } catch (e) {
@@ -216,7 +229,7 @@ class DeepLinkBloc extends Bloc<DeepLinkEvent, DeepLinkState> {
     }
 
     if (!tx.isVerified) {
-      emit(DeepLinkError(' Transaction signature invalid — rejected'));
+      emit(DeepLinkError('Transaction signature invalid — rejected'));
       return;
     }
 

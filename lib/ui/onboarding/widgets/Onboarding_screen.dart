@@ -112,7 +112,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: isActive
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.primary.withValues(alpha: 0.2),
+                              : theme.colorScheme.primary.withValues(
+                                  alpha: 0.2,
+                                ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       );
@@ -120,30 +122,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
 
                   // 2. Next circular button pulled exclusively to the right edge
+                  // FIX: was a bare GestureDetector — worked, but gave no
+                  // tap ripple/feedback, inconsistent with every other
+                  // button in the app (all ElevatedButton/OutlinedButton,
+                  // which get Material's built-in ripple for free).
+                  // Material + InkWell gives the same visual result with
+                  // proper tap feedback.
                   Align(
                     alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      onTap: _onNext,
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 
-                                0.15,
+                    child: Material(
+                      color: theme.colorScheme.primary,
+                      shape: const CircleBorder(),
+                      elevation: 0,
+                      child: InkWell(
+                        onTap: _onNext,
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 24,
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                     ),

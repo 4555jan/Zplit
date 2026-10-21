@@ -284,6 +284,12 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              // NOTE: deliberately kept Colors.white (not theme-aware)
+              // even in dark mode — QR codes rely on strong black-on-
+              // white contrast to scan reliably, so this is treated as
+              // an intentional exception to the dark-mode rule applied
+              // elsewhere, not an oversight. Flag if you'd rather this
+              // adapt to theme instead.
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -315,6 +321,8 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
 
               const SizedBox(height: 28),
@@ -329,7 +337,11 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                     ),
                   ),
                   icon: const Icon(Icons.ios_share_rounded, size: 20),
-                  label: Text('Send Link to ${widget.friendName}'),
+                  label: Text(
+                    'Send Link to ${widget.friendName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: Colors.white,
@@ -390,6 +402,8 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                 color: colors.primary,
                 fontWeight: FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (widget.bluetoothEndpointId != null)
@@ -436,6 +450,8 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                 color: colors.primary,
                 fontWeight: FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (widget.wifiJsonPayload != null)
@@ -495,6 +511,8 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
                     color: colors.primary,
                     fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               TextButton(
@@ -520,6 +538,12 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
     );
   }
 
+  // FIX: 'To', 'For', and 'Category' values are all user-entered text
+  // (friend display name, expense description, category tag) with no
+  // upstream length limit — previously rendered as two plain Text
+  // widgets with no Expanded/Flexible, so a long value could overflow
+  // this card horizontally. The value side now wraps and truncates
+  // gracefully instead.
   Widget _summaryRow(
     ThemeData theme,
     String label,
@@ -528,6 +552,7 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
     ColorScheme? colors,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
@@ -536,11 +561,17 @@ class _TransactionSentScreenState extends State<TransactionSentScreen> {
             color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: highlight ? colors?.primary : null,
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: highlight ? colors?.primary : null,
+            ),
           ),
         ),
       ],

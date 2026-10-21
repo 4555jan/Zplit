@@ -17,6 +17,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String? _address;
 
+  String? _checkedPicturePath;
+  bool _profilePictureExists = false;
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +29,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadAddress() async {
     const storage = FlutterSecureStorage();
     final address = await storage.read(key: 'evm_address');
-    setState(() => _address = address);
+    if (mounted) setState(() => _address = address);
+  }
+
+  Future<void> _refreshProfilePicture(String? path) async {
+    if (path == _checkedPicturePath) return; // avoid redundant disk hits
+    _checkedPicturePath = path;
+
+    if (path == null || path.isEmpty) {
+      if (mounted) setState(() => _profilePictureExists = false);
+      return;
+    }
+
+    final exists = await File(path).exists();
+    if (mounted) setState(() => _profilePictureExists = exists);
   }
 
   UserModel? _findCurrentUser(UserState userState) {
@@ -59,8 +75,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final me = _findCurrentUser(userState);
     final displayName = me?.displayName ?? 'My Profile';
 
+    // FIX: kick off the async existence check here instead of calling
+    // existsSync() inline — doesn't block this build, and only
+    // re-checks disk when the path actually changes.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshProfilePicture(me?.profilePicture);
+    });
     final hasImage =
-        me?.profilePicture != null && File(me!.profilePicture!).existsSync();
+        _profilePictureExists && me?.profilePicture == _checkedPicturePath;
+
+    // FIX: was hardcoded to the literal text 'Light' regardless of the
+    // app's actual theme — now reflects the real current brightness.
+    // Note: this still doesn't let the user actually CHANGE the theme —
+    // onTap is a no-op below, same as before. Wiring a real toggle
+    // needs access to wherever ThemeMode is held (likely a
+    // ValueNotifier or similar passed into MaterialApp in main.dart) —
+    // share that file and this can be made to actually work rather
+    // than just display accurate-but-static text.
+    final currentThemeLabel = theme.brightness == Brightness.dark
+        ? 'Dark'
+        : 'Light';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -111,27 +145,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     radius: 52,
                     backgroundColor: colors.primary.withValues(alpha: 0.12),
                     backgroundImage: hasImage
-                        ? FileImage(File(me.profilePicture!))
+                        ? FileImage(File(me!.profilePicture!))
                         : null,
                     child: !hasImage
                         ? Icon(Icons.person, size: 52, color: colors.primary)
                         : null,
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    displayName,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+                  // FIX: added overflow protection — a very long display
+                  // name could otherwise wrap awkwardly or clip at large
+                  // accessibility font scales with no guard at all.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      displayName,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _address != null
+                    _address != null && _address!.length >= 10
                         ? '${_address!.substring(0, 6)}...${_address!.substring(_address!.length - 4)}'
                         : '',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.45,
+                      ),
                     ),
                   ),
                 ],
@@ -151,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.palette_outlined,
                 title: 'Theme',
                 trailing: Text(
-                  'Light',
+                  currentThemeLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
@@ -242,7 +287,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Expanded(child: Text(title, style: theme.textTheme.bodyLarge)),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.bodyLarge,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             trailing ??
                 Icon(
                   Icons.chevron_right,

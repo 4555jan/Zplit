@@ -472,19 +472,18 @@ void main() {
     // Documents current behaviour: the route is read from pathSegments, so a
     // host-form link has no route. If your QR codes / app links use this
     // shape, this is a bug worth fixing rather than a test worth keeping.
+    // zplit://invite?d=... puts "invite" in the host, not the path. The route
+    // is read from the host for non-http(s) schemes, so these links are
+    // handled like https://zplit.aossie.org/invite?d=... ones.
     blocTest<DeepLinkBloc, DeepLinkState>(
-      'treats host-form links (zplit://invite?d=...) as an unknown route',
+      'handles host-form links (zplit://invite?d=...) as an invite',
       build: buildBloc,
       act: (bloc) => bloc.add(
         DeepLinkReceived(
           Uri.parse('zplit://invite?d=${encodePayload({'id': 'user-1'})}'),
         ),
       ),
-      expect: () => [
-        isA<DeepLinkLoading>(),
-        isError(startsWith('Unknown route')),
-      ],
-      verify: (_) => verifyNoUpsert(),
+      expect: () => [isA<DeepLinkLoading>(), isA<InviteHandled>()],
     );
 
     blocTest<DeepLinkBloc, DeepLinkState>(

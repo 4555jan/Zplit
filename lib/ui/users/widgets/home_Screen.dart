@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -34,7 +33,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
   String? _myAddress;
+
+  // FIX: profile picture existence is now checked once, off the build
+  // path, instead of calling File(...).existsSync() synchronously inside
+  // build() on every rebuild (blocking disk I/O on the UI thread).
+  String? _profilePicturePath;
+  bool _profilePictureExists = false;
 
   @override
   void initState() {
@@ -54,6 +60,19 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshProfilePicture(String? path) async {
+    if (path == _profilePicturePath) return; // avoid redundant disk hits
+    _profilePicturePath = path;
+
+    if (path == null || path.isEmpty) {
+      if (mounted) setState(() => _profilePictureExists = false);
+      return;
+    }
+
+    final exists = await File(path).exists();
+    if (mounted) setState(() => _profilePictureExists = exists);
   }
 
   void _sendAck(
@@ -143,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen>
                           state.txnId,
                           'rejected',
                           state.viaTransport,
-                        ); // CHANGED
+                        );
                         navigator.pop();
                       },
                       style: OutlinedButton.styleFrom(
@@ -168,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
                           state.txnId,
                           'accepted',
                           state.viaTransport,
-                        ); // CHANGED
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
@@ -189,10 +208,14 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // FIX: labels no longer overflow horizontally on long sender names,
+  // notes, or tags — label stays fixed-width, value wraps and truncates
+  // gracefully instead of pushing off-screen.
   Widget _infoRow(ThemeData theme, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$label: ',
@@ -200,7 +223,14 @@ class _HomeScreenState extends State<HomeScreen>
               fontWeight: FontWeight.w600,
             ),
           ),
-          Text(value, style: theme.textTheme.bodyMedium),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
@@ -293,17 +323,26 @@ class _HomeScreenState extends State<HomeScreen>
                 }
               }
 
+              // FIX: kick off the async existence check here instead of
+              // calling existsSync() inline — doesn't block this build,
+              // and only re-checks disk when the path actually changes.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _refreshProfilePicture(profilePicturePath);
+              });
+
               final hasImage =
-                  profilePicturePath != null &&
-                  File(profilePicturePath).existsSync();
+                  _profilePictureExists &&
+                  profilePicturePath == _profilePicturePath;
 
               return GestureDetector(
                 onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
                 child: CircleAvatar(
                   radius: 22,
-                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  backgroundColor: theme.colorScheme.primary.withValues(
+                    alpha: 0.15,
+                  ),
                   backgroundImage: hasImage
-                      ? FileImage(File(profilePicturePath))
+                      ? FileImage(File(profilePicturePath!))
                       : null,
                   child: !hasImage
                       ? Icon(
@@ -416,11 +455,18 @@ class _HomeScreenState extends State<HomeScreen>
         child: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
-            color: Colors.white,
+            // FIX: was hardcoded Colors.white — broke dark mode by
+            // showing a bright white pill behind the selected tab
+            // regardless of theme. theme.cardColor tracks light/dark
+            // correctly the same way every other surface in this app
+            // does (see FriendDetailScreen, AddExpenseScreen, etc.).
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                               color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.24 : 0.08,
+                ),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),

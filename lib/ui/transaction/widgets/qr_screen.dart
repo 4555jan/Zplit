@@ -12,8 +12,12 @@ class QrScannerScreen extends StatefulWidget {
 
 class _QrScannerScreenState extends State<QrScannerScreen>
     with WidgetsBindingObserver {
+  /// Must match the host in AndroidManifest.xml and invite_friends.dart.
+  static const _zplitHost = 'zplit.aossie.org';
+
   MobileScannerController? _controller;
   bool _scanned = false;
+  DateTime? _lastErrorAt;
 
   @override
   void initState() {
@@ -49,19 +53,27 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     super.dispose();
   }
 
+  /// Accepts both link styles:
+  ///   https://zplit.aossie.org/invite?d=...  (current, WhatsApp-friendly)
+  ///   zplit://invite?d=...                   (older QR codes / builds)
+  bool _isZplitLink(Uri uri) {
+    if (uri.scheme == 'zplit') return true;
+    return uri.scheme == 'https' && uri.host == _zplitHost;
+  }
+
   void _onDetect(BarcodeCapture capture) {
     if (_scanned) return;
     final raw = capture.barcodes.firstOrNull?.rawValue;
     if (raw == null) return;
 
-    if (!raw.startsWith('zplit://')) {
-      _showError('Not a valid Zplit QR code');
+    final uri = Uri.tryParse(raw.trim());
+    if (uri == null) {
+      _showError('Could not parse QR code');
       return;
     }
 
-    final uri = Uri.tryParse(raw);
-    if (uri == null) {
-      _showError('Could not parse QR code');
+    if (!_isZplitLink(uri)) {
+      _showError('Not a valid Zplit QR code');
       return;
     }
 
@@ -74,6 +86,16 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   void _showError(String msg) {
     if (!mounted) return;
+
+    // The scanner reports the same code on every frame, so without this
+    // the snackbar would stack up dozens of times per second.
+    final now = DateTime.now();
+    if (_lastErrorAt != null &&
+        now.difference(_lastErrorAt!) < const Duration(seconds: 2)) {
+      return;
+    }
+    _lastErrorAt = now;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),

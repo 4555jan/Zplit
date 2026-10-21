@@ -34,12 +34,20 @@ class InviteFriendsScreen extends StatefulWidget {
 }
 
 class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
+  /// Must exactly match the host in AndroidManifest.xml and the domain
+  /// serving /.well-known/assetlinks.json.
+  static const _inviteHost = 'zplit.aossie.org';
+
   bool _proximityEnabled = false;
   String _proximityFilter = 'Contacts Only';
 
   String? _myProfilePicturePath;
 
   final Set<String> _autoSentTo = {};
+
+  /// Built once on first access so the QR code stays stable across
+  /// rebuilds (the timestamp inside it no longer changes every frame).
+  late final String _inviteDeepLink = _createInviteUrl();
 
   @override
   void initState() {
@@ -59,7 +67,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     }
   }
 
-  String get _inviteDeepLink {
+  String _createInviteUrl() {
     final payload = {
       'id': widget.userId,
       'name': widget.name,
@@ -67,10 +75,10 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
     final encoded = base64Url.encode(utf8.encode(jsonEncode(payload)));
-    return 'https://zplit.aossie.org/invite?d=$encoded';
+    return 'https://$_inviteHost/invite?d=$encoded';
   }
 
-  String get _displayLink => 'zplit.aossie.org/invite';
+  String get _displayLink => 'https://$_inviteHost/invite';
 
   String get _inviteJsonPayload {
     String? picBase64;
@@ -362,8 +370,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -414,8 +422,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -496,8 +504,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
@@ -545,7 +553,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                           Icon(
                             Icons.keyboard_arrow_down,
                             size: 16,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ],
                       ),
@@ -571,8 +581,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 
-                  theme.brightness == Brightness.dark ? 0.08 : 0.03,
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.08 : 0.03,
                 ),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
