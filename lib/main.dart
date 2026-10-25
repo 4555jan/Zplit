@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zplit/core/database/app_database.dart';
@@ -16,6 +18,7 @@ import 'package:zplit/ui/bluetooth/view_model/bluetooth_bloc.dart';
 import 'package:zplit/ui/deep_link/app_listener.dart';
 import 'package:zplit/ui/deep_link/view_model/deep_link_bloc.dart';
 import 'package:zplit/ui/group/view_models/group_bloc.dart';
+import 'package:zplit/ui/settlement/widgets/settlement_tracker.dart';
 import 'package:zplit/ui/transaction/view_model/transaction_bloc.dart';
 import 'package:zplit/ui/users/view_model/user_bloc.dart';
 import 'package:zplit/core/theme/app_theme.dart';
@@ -61,6 +64,15 @@ void main() async {
   Bloc.observer = AppBlocObserver();
   // Load the saved Light / Dark / System choice before the first frame.
   await ThemeController.instance.load();
+
+  // Android may kill Zplit while the wallet app is open. Finish any such
+  // settlement and re-check submitted payments, without delaying startup.
+  unawaited(
+    SettlementTracker.resumeSessions().then(
+      (_) => SettlementTracker.checkAll(),
+    ),
+  );
+
   runApp(const MyApp());
 }
 
