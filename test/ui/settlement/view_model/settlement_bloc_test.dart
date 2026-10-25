@@ -9,7 +9,7 @@ import 'package:zplit/ui/settlement/view_model/settlement_state.dart';
 /// Stands in for the url_launcher platform channel. Zplit opens the wallet
 /// with launchUrl only (it deliberately never calls canLaunchUrl, which
 /// returns false for custom schemes on Android 11+ unless declared in
-/// <queries>), so only the 'launch' call is expected.
+/// `<queries>`), so only the 'launch' call is expected.
 class _FakeUrlLauncher {
   static const _channel = MethodChannel('plugins.flutter.io/url_launcher');
 

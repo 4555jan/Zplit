@@ -117,10 +117,6 @@ class SettlementService {
     );
   }
 
-  /// Returns false if no installed app handles the link.
-  /// (canLaunchUrl is deliberately not used: on Android 11+ it returns false
-  /// for custom schemes unless declared in <queries>, even when a wallet is
-  /// installed. launchUrl itself works without that.)
   static Future<bool> launchWalletTransfer({
     required String recipientAddress,
     required BigInt rawAmount,
