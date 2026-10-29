@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zplit/core/services/settlement_config.dart';
 import 'package:zplit/core/services/settlement_service.dart';
@@ -11,6 +12,14 @@ const _friend = '0x2222222222222222222222222222222222222222';
 final _goodHash = '0x${'ab' * 32}';
 
 void main() {
+  // The bloc's reset path clears the saved settlement session, which writes
+  // to flutter_secure_storage. That needs Flutter's test binding and an
+  // in-memory secure storage (there is no real keystore under `flutter test`).
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
   // These expectations assume the fixed rate in SettlementConfig.
   test('config rate is 83 INR per USD (tests below depend on it)', () {
     expect(SettlementConfig.inrPerUsd, 83.0);
